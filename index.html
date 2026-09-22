@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Faces avant Eurorack</title>
+<style>
+  :root { --bg:#f4f4f2; --fg:#222; --panel:#fff; --line:#ccc; --acc:#d33; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px system-ui, sans-serif; background:var(--bg); color:var(--fg); display:flex; height:100vh; }
+  aside { width:300px; padding:12px; overflow-y:auto; background:var(--panel); border-right:1px solid var(--line); }
+  main { flex:1; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:20px; }
+  summary { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px; color:#666; cursor:pointer; }
+  details { border-bottom:1px solid #eee; padding-bottom:6px; }
+  .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+  .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
+  #hpchips button { padding:2px 6px; font-size:12px; min-width:30px; }
+  #hpchips button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+  .tile:hover { border-color:var(--acc); background:#fff; }
+  .tile svg { width:44px; height:44px; display:block; margin:0 auto 2px; pointer-events:none; }
+  label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0; }
+  input, select { width:120px; padding:3px 5px; }
+  input[type=checkbox] { width:auto; }
+  button { margin:2px 2px 2px 0; padding:4px 8px; cursor:pointer; }
+  .info { font-size:12px; color:#666; }
+  svg#view { background:#fff; box-shadow:0 2px 10px #0002; touch-action:none; }
+  .sel { stroke:var(--acc) !important; }
+  svg#view [data-i] { pointer-events:all; cursor:grab; }
+  svg#view.dragging, svg#view.dragging [data-i] { cursor:grabbing; }
+</style>
+</head>
+<body>
+<aside>
+  <details open id="secPanel"><summary>1 · Panneau</summary>
+  <label>Format <select id="fmt">
+    <option value="3u">3U (128,5 mm)</option>
+    <option value="ij">1U Intellijel (39,65 mm)</option>
+    <option value="pl">1U Pulp Logic (43,18 mm)</option>
+  </select></label>
+  <label>Largeur (HP) <input id="hp" type="number" min="1" max="104" value="8"></label>
+  <div id="hpchips"></div>
+  <label>Largeur réelle (mm) <input id="w" type="number" step="0.01"></label>
+  <div class="info" id="winfo"></div>
+  <label>Trous par rail <select id="nholes">
+    <option value="auto">auto</option><option value="1">1 (centré)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+  </select></label>
+  <div class="info">Trous M3 : Ø 3,2 mm oblongs (+2 mm), à 3 mm des bords haut/bas et 7,5 mm du bord.</div>
+  </details>
+
+  <details open><summary>2 · Composants</summary>
+  <div class="pal" id="presets"></div>
+  <p class="info">Glisse une miniature sur le panneau (ou clic = au centre).</p>
+  </details>
+
+  <details open><summary>Élément sélectionné</summary>
+  <div id="props" class="info">Clique sur un élément.</div>
+  </details>
+
+  <details open><summary>Affichage</summary>
+  <label>Grille d'aimantation (mm) <input id="grid" type="number" step="0.01" value="1.27"></label>
+  <label>Cotes (cm) <input id="cotes" type="checkbox" checked></label>
+  <label>Zones des rails <input id="rails" type="checkbox" checked></label>
+  <label>Aperçu réaliste <input id="real" type="checkbox"></label>
+  <label>Couleur du panneau <select id="pcol"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option></select></label>
+  <label>Zoom <input id="zoom" type="range" min="2" max="10" step="0.5" value="5"></label>
+  </details>
+
+  <details open><summary>Fichier</summary>
+  <button id="exSvg">Exporter SVG</button>
+  <button id="save">Enregistrer .json</button>
+  <button id="load">Ouvrir .json</button>
+  <input id="file" type="file" accept=".json" hidden>
+  <p class="info">SVG en mm, 1:1. Rouge = découpe, bleu = gravure.<br>Glisser à la souris : aimanté sur la grille, l'axe central et les autres éléments (Alt = libre).<br>Flèches = déplacer (Maj = ×10), Suppr = effacer, Ctrl+D = dupliquer.</p>
+  </details>
+</aside>
+<svg width="0" height="0" style="position:absolute" id="defs"></svg>
+<main><svg id="view" xmlns="http://www.w3.org/2000/svg"></svg></main>
+
+<script>
+const HP = 5.08;
+// Largeurs réelles Doepfer (table exploding-shed.com)
+const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80,16:80.90,18:91.30,20:101.30,22:111.40,28:141.90,42:213.00};
+const HEIGHTS = {'3u':128.5, ij:39.65, pl:43.18};
+const RAIL = {'3u':10, ij:0, pl:0}; // ponytail: 10 mm de rail en haut/bas en 3U, valeur usuelle, pas de la norme
+const PRESETS = [
+  ['Jack 3,5 mm', 6, 'IN', 'jack'], ['Pot 9 mm', 7, 'LEVEL', 'pot9'], ['Pot 16 mm', 7.5, 'FREQ', 'pot16'],
+  ['LED 3 mm', 3.1, '', 'led'], ['LED 5 mm', 5.1, '', 'led'], ['Inter. à levier', 6.2, '', 'toggle'],
+  ['Bouton poussoir', 7.2, '', 'button'], ['Encodeur', 7, '', 'encoder'], ['Trou libre', 4, '', 'hole']];
+// Rayon visible du composant monté (bouton, écrou…), pour placer l'étiquette au-dessus
+const REAL_R = { jack:()=>4, pot9:()=>5.5, pot16:()=>8.5, encoder:()=>6, toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2 };
+const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'} };
+const REAL_DEFS = `<defs>
+  <linearGradient id="alu" x1="0" y1="0" x2="1" y2="0.15"><stop offset="0" stop-color="#c9cccf"/><stop offset=".5" stop-color="#e6e8ea"/><stop offset="1" stop-color="#bfc2c6"/></linearGradient>
+  <radialGradient id="metal" cx=".35" cy=".3"><stop offset="0" stop-color="#fafafa"/><stop offset=".6" stop-color="#b8bbbf"/><stop offset="1" stop-color="#7d8186"/></radialGradient>
+  <radialGradient id="knob" cx=".4" cy=".3"><stop offset="0" stop-color="#555"/><stop offset=".7" stop-color="#1e1e1e"/><stop offset="1" stop-color="#0a0a0a"/></radialGradient>
+  <radialGradient id="shine" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0.3" dy="0.5" stdDeviation="0.4" flood-opacity=".45"/></filter>
+</defs>`;
+
+let state = { fmt:'3u', hp:8, w:null, nholes:'auto', hd:3.2, hslot:2, hy:3, hx:7.5, items:[] };
+let sel = null;
+const $ = id => document.getElementById(id);
+const svg = $('view');
+const H = () => HEIGHTS[state.fmt];
+const W = () => state.w ?? (WIDTHS[state.hp] ?? +(state.hp*HP - 0.35).toFixed(2));
+const snap = v => { const g = +$('grid').value; return g > 0 ? +(Math.round(v/g)*g).toFixed(2) : +v.toFixed(2); };
+
+function mountHoles() {
+  // Trous par rail : 1 centré (< 10 HP), puis 2 aux bords, +1 tous les 7,5 cm (3 à 15 cm, 4 à 22,5 cm…)
+  const w = W(), h = H();
+  let n = state.nholes === 'auto' ? (state.hp < 10 ? 1 : Math.max(2, Math.floor(w / 75) + 1)) : +state.nholes;
+  const span = state.hp - 3; // Doepfer : 7,5 mm puis 7,5 + (HP−3)×5,08, entraxes au pas de 1 HP
+  n = Math.min(n, span + 1);
+  const xs = n <= 1 ? [+(w/2).toFixed(2)]
+    : Array.from({length:n}, (_, i) => +(state.hx + Math.round(i*span/(n-1))*HP).toFixed(2));
+  const out = [];
+  for (const x of xs) for (const y of [state.hy, h - state.hy]) out.push({x, y});
+  return out;
+}
+
+function slotPath(x, y, d, L) { // trou oblong horizontal centré sur (x,y)
+  if (L <= 0) return `<circle cx="${x}" cy="${y}" r="${d/2}"/>`;
+  const r = d/2, a = x - L/2, b = x + L/2;
+  return `<path d="M${a} ${y-r} H${b} A${r} ${r} 0 0 1 ${b} ${y+r} H${a} A${r} ${r} 0 0 1 ${a} ${y-r} Z"/>`;
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Rendu réaliste (écran seulement, jamais exporté). Cotes approximatives des composants courants.
+function realSvg(it, i) {
+  const {x, y} = it, a = `data-i="${i}"`, col = it.color || '#e22';
+  const circ = (r, f, extra = '') => `<circle ${a} cx="${x}" cy="${y}" r="${r}" fill="${f}" ${extra}/>`;
+  const hex = r => `<polygon ${a} points="${[0,1,2,3,4,5].map(k => `${x + r*Math.cos(k*Math.PI/3 + Math.PI/6)},${y + r*Math.sin(k*Math.PI/3 + Math.PI/6)}`).join(' ')}" fill="url(#metal)" stroke="#666" stroke-width="0.1"/>`;
+  const knob = (r, lines) => circ(r, 'url(#knob)', 'filter="url(#shadow)"')
+    + (lines ? Array.from({length:24}, (_, k) => { const t = k*Math.PI/12; return `<line x1="${x+(r-0.6)*Math.cos(t)}" y1="${y+(r-0.6)*Math.sin(t)}" x2="${x+r*Math.cos(t)}" y2="${y+r*Math.sin(t)}" stroke="#444" stroke-width="0.25"/>`; }).join('') : '')
+    + `<line x1="${x}" y1="${y - r*0.25}" x2="${x}" y2="${y - r + 0.8}" stroke="#fff" stroke-width="0.5" stroke-linecap="round" pointer-events="none"/>`;
+  let s = '';
+  switch (it.kind) {
+    case 'jack': s = circ(4, 'url(#metal)', 'stroke="#666" stroke-width="0.1" filter="url(#shadow)"') + circ(2.6, '#8a8d91') + circ(1.8, '#111'); break;
+    case 'pot9': s = knob(5.5, false); break;
+    case 'pot16': s = knob(8.5, false) + circ(8.5, 'none', 'stroke="#000" stroke-width="0.3"'); break;
+    case 'encoder': s = knob(6, true); break;
+    case 'led': s = circ(it.d/2 + 0.3, '#333') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
+    case 'toggle': s = hex(4.3) + circ(2.4, 'url(#metal)', 'stroke="#555" stroke-width="0.1"')
+      + `<ellipse ${a} cx="${x}" cy="${y - 3}" rx="1.3" ry="3.4" fill="url(#metal)" stroke="#555" stroke-width="0.1" filter="url(#shadow)"/>`; break;
+    case 'button': s = circ(it.d/2 + 1.2, 'url(#metal)', 'filter="url(#shadow)"') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
+    default: s = circ(it.d/2, '#111');
+  }
+  if (i === sel) s += `<circle cx="${x}" cy="${y}" r="${Math.max(it.d/2, 4) + 1.5}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`;
+  return s;
+}
+
+function itemSvg(it, i) {
+  const c = i === sel ? ' class="sel"' : '';
+  const cut = 'fill="none" stroke="#f00" stroke-width="0.1"';
+  const eng = `fill="${REAL ? PANEL[$('pcol').value].ink : '#00f'}" stroke="none" font-family="Helvetica, Arial, sans-serif" text-anchor="middle"`;
+  let s = '';
+  if (it.type === 'hole') {
+    s += REAL ? realSvg(it, i) : `<circle data-i="${i}" cx="${it.x}" cy="${it.y}" r="${it.d/2}" ${cut}${c}/>`;
+    if (it.label) s += `<text data-i="${i}" x="${it.x}" y="${it.y - Math.max(it.d/2, REAL_R[it.kind]?.(it) ?? 0) - 1.5}" font-size="${it.size||2.5}" ${eng}>${esc(it.label)}</text>`;
+  } else if (it.type === 'rect') {
+    s += `<rect data-i="${i}" x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" rx="${it.r||0}" ${REAL ? `fill="#0b0d10" stroke="${i === sel ? '#d33' : '#333'}" stroke-width="0.3"` : cut + c}/>`;
+  } else if (it.type === 'text') {
+    s += `<text data-i="${i}" x="${it.x}" y="${it.y}" font-size="${it.size}" font-weight="${it.bold?'bold':'normal'}" dominant-baseline="middle" ${eng}${c ? ' stroke="#d33" stroke-width="0.15"' : ''}>${esc(it.text)}</text>`;
+  }
+  return s;
+}
+
+// Cotes en cm autour du panneau + position de l'élément sélectionné (écran seulement)
+const cm = mm => (mm/10).toFixed(2).replace('.', ',') + ' cm';
+function dimsSvg() {
+  if (!$('cotes').checked) return '';
+  const w = W(), h = H(), st = 'stroke="#555" stroke-width="0.15"', tx = 'font-size="2.6" fill="#333" font-family="Helvetica, Arial, sans-serif" text-anchor="middle"';
+  const arrow = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${st} marker-start="url(#arr)" marker-end="url(#arr)"/>`;
+  let s = `<defs><marker id="arr" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L6 3L0 6z" fill="#555"/></marker></defs>`;
+  // largeur (au-dessus) et hauteur (à gauche)
+  s += `<line x1="0" y1="-1" x2="0" y2="-9" ${st}/><line x1="${w}" y1="-1" x2="${w}" y2="-9" ${st}/>` + arrow(0, -7, w, -7)
+     + `<text x="${w/2}" y="-8.5" ${tx}>${cm(w)}</text>`;
+  s += `<line x1="-1" y1="0" x2="-9" y2="0" ${st}/><line x1="-1" y1="${h}" x2="-9" y2="${h}" ${st}/>` + arrow(-7, 0, -7, h)
+     + `<text x="-8.5" y="${h/2}" ${tx} transform="rotate(-90 -8.5 ${h/2})">${cm(h)}</text>`;
+  const it = state.items[sel];
+  if (it) { // distances bord gauche / bord haut → centre de l'élément
+    const c = 'stroke="#d33" stroke-width="0.15" stroke-dasharray="0.8 0.5"', t = tx.replace('#333', '#d33');
+    s += `<line x1="0" y1="${it.y}" x2="${it.x}" y2="${it.y}" ${c} pointer-events="none"/><text x="${it.x/2}" y="${it.y - 1}" ${t}>${cm(it.x)}</text>`;
+    s += `<line x1="${it.x}" y1="0" x2="${it.x}" y2="${it.y}" ${c} pointer-events="none"/><text x="${it.x + 1}" y="${it.y/2}" ${t} text-anchor="start">${cm(it.y)}</text>`;
+  }
+  return s;
+}
+
+let REAL = false; // vrai pendant le dessin à l'écran quand l'aperçu réaliste est coché
+function panelSvg(guides) {
+  const w = W(), h = H();
+  REAL = guides && $('real').checked;
+  if (REAL) {
+    let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${PANEL[$('pcol').value].fill}" stroke="#888" stroke-width="0.15"/>`;
+    s += mountHoles().map(p => `<circle cx="${p.x}" cy="${p.y}" r="2.8" fill="url(#metal)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>`
+      + `<path d="M${p.x-1.4} ${p.y}H${p.x+1.4}M${p.x} ${p.y-1.4}V${p.y+1.4}" stroke="#555" stroke-width="0.45"/>`).join('');
+    return s + state.items.map(itemSvg).join('') + dimsSvg();
+  }
+  let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${guides ? '#e8e8e8' : 'none'}" stroke="#f00" stroke-width="0.1"/>`;
+  if (guides && $('rails').checked && RAIL[state.fmt]) {
+    const r = RAIL[state.fmt];
+    s += `<rect x="0" y="0" width="${w}" height="${r}" fill="#0000000d"/><rect x="0" y="${h-r}" width="${w}" height="${r}" fill="#0000000d"/>`;
+    s += `<line x1="0" x2="${w}" y1="${r}" y2="${r}" stroke="#999" stroke-width="0.15" stroke-dasharray="1 1"/>`;
+    s += `<line x1="0" x2="${w}" y1="${h-r}" y2="${h-r}" stroke="#999" stroke-width="0.15" stroke-dasharray="1 1"/>`;
+  }
+  if (guides) {
+    const g = +$('grid').value;
+    if (g > 0 && g * +$('zoom').value >= 4)
+      s += `<defs><pattern id="gp" width="${g}" height="${g}" patternUnits="userSpaceOnUse"><path d="M${g} 0V${g}H0" fill="none" stroke="#0000001a" stroke-width="0.05"/></pattern></defs><rect width="${w}" height="${h}" fill="url(#gp)"/>`;
+    for (let x = HP; x < w; x += HP) s += `<line x1="${x}" x2="${x}" y1="0" y2="${h}" stroke="#0002" stroke-width="0.1"/>`;
+    s += `<line x1="${w/2}" x2="${w/2}" y1="0" y2="${h}" stroke="#08f4" stroke-width="0.1" stroke-dasharray="0.5 0.5"/>`;
+  }
+  s += `<g fill="none" stroke="#f00" stroke-width="0.1">` + mountHoles().map(p => slotPath(p.x, p.y, state.hd, state.hslot)).join('') + `</g>`;
+  s += state.items.map(itemSvg).join('');
+  return guides ? s + dimsSvg() : s;
+}
+
+function render() {
+  const w = W(), h = H(), z = +$('zoom').value;
+  const m = 14; // marge pour les cotes
+  svg.setAttribute('viewBox', `${-m} ${-m} ${w+m+4} ${h+m+4}`);
+  svg.setAttribute('width', (w+m+4)*z);
+  svg.setAttribute('height', (h+m+4)*z);
+  svg.innerHTML = panelSvg(true);
+  $('w').value = W();
+  document.querySelectorAll('#hpchips button').forEach(b => b.classList.toggle('on', +b.dataset.hp === state.hp));
+  $('winfo').textContent = `Théorique : ${(state.hp*HP).toFixed(2)} mm (${(state.hp*0.2).toFixed(1)}") · hauteur ${h} mm (${(h/25.4).toFixed(2)}")` + (WIDTHS[state.hp] || state.w ? '' : ' · largeur estimée (hors table)');
+  renderProps();
+}
+
+function renderProps() {
+  const it = state.items[sel], p = $('props');
+  if (!it) { p.innerHTML = 'Clique sur un élément.'; return; }
+  const fields = { hole:[['x','X'],['y','Y'],['d','Ø'],['label','Étiquette','text'],['size','Taille étiquette'],
+                         ...(['led','button'].includes(it.kind) ? [['color','Couleur','color']] : [])],
+                   rect:[['x','X centre'],['y','Y centre'],['w','Largeur'],['h','Hauteur'],['r','Rayon coins']],
+                   text:[['x','X'],['y','Y'],['text','Texte','text'],['size','Taille'],['bold','Gras','checkbox']] }[it.type];
+  p.innerHTML = fields.map(([k, l, t]) => `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`).join('')
+    + `<button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button>`;
+  p.querySelectorAll('input').forEach(inp => inp.oninput = () => {
+    const k = inp.dataset.k;
+    it[k] = inp.type === 'checkbox' ? inp.checked : inp.type === 'number' ? +inp.value : inp.value;
+    svg.innerHTML = panelSvg(true);
+  });
+  $('del').onclick = del; $('dup').onclick = dup;
+  $('cx').onclick = () => { it.x = +(W()/2).toFixed(2); render(); };
+}
+
+function add(it) { state.items.push(it); sel = state.items.length - 1; render(); }
+function del() { if (sel == null) return; state.items.splice(sel, 1); sel = null; render(); }
+function dup() { if (sel == null) return; add({...state.items[sel], x: state.items[sel].x + 5}); }
+
+$('defs').innerHTML = REAL_DEFS;
+// Largeurs de module courantes (dont 26 HP, cf. 4ms SWN)
+[2,4,6,8,10,12,14,16,18,20,22,24,26,28,32,36,42].forEach(n => {
+  const b = document.createElement('button'); b.textContent = n; b.dataset.hp = n;
+  b.onclick = () => { $('hp').value = n; $('hp').oninput(); };
+  $('hpchips').append(b);
+});
+const PALETTE = [
+  ...PRESETS.map(([name, d, label, kind]) => [name, () => ({type:'hole', kind, d, label, size:2.5, ...(kind === 'led' || kind === 'button' ? {color:'#e22222'} : {})})]),
+  ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})],
+  ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})]];
+function place(make, x, y) {
+  add({...make(), x:snap(x), y:snap(y)});
+  if (state.items.length === 1) $('secPanel').open = false; // premier ajout : panneau réglé, on replie
+}
+PALETTE.forEach(([name, make], k) => {
+  const t = document.createElement('div'), it = {...make(), x:0, y:0};
+  t.className = 'tile'; t.draggable = true;
+  const art = it.type === 'hole' ? realSvg(it, -1)
+    : it.type === 'rect' ? '<rect x="-6" y="-4" width="12" height="8" fill="#0b0d10"/>'
+    : '<text x="0" y="1.5" font-size="7" font-weight="bold" text-anchor="middle" dominant-baseline="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
+  t.innerHTML = `<svg viewBox="-10 -10 20 20">${art}</svg>${name}`;
+  t.onclick = () => place(make, W()/2, H()/2);
+  t.ondragstart = e => e.dataTransfer.setData('text/plain', k);
+  $('presets').append(t);
+});
+svg.ondragover = e => e.preventDefault();
+svg.ondrop = e => {
+  e.preventDefault();
+  const k = +e.dataTransfer.getData('text/plain'), p = pt(e);
+  if (PALETTE[k]) place(PALETTE[k][1], p.x, p.y);
+};
+
+// Réglages du panneau
+const bind = (id, k, num = true) => $(id).oninput = () => { state[k] = num ? +$(id).value : $(id).value; if (k === 'hp') state.w = null; render(); };
+bind('fmt', 'fmt', false); bind('hp', 'hp'); bind('nholes', 'nholes', false);
+$('w').oninput = () => { state.w = +$('w').value || null; svg.innerHTML = panelSvg(true); };
+$('rails').oninput = render; $('cotes').oninput = render; $('real').oninput = render; $('pcol').oninput = render; $('zoom').oninput = render;
+
+// Glisser-déposer : aimant sur les autres éléments / axe central, sinon sur la grille
+let drag = null, guideX = null, guideY = null;
+const MAG = 1.5; // mm, distance de capture de l'aimant
+const pt = e => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+function magnet(v, targets) {
+  let best = null;
+  for (const t of targets) if (Math.abs(t - v) <= MAG && (best == null || Math.abs(t - v) < Math.abs(best - v))) best = t;
+  return best;
+}
+function redraw() {
+  let s = panelSvg(true);
+  if (drag) {
+    const w = W(), h = H(), st = 'stroke="#f0a" stroke-width="0.15"';
+    if (guideX != null) s += `<line x1="${guideX}" x2="${guideX}" y1="0" y2="${h}" ${st}/>`;
+    if (guideY != null) s += `<line x1="0" x2="${w}" y1="${guideY}" y2="${guideY}" ${st}/>`;
+  }
+  svg.innerHTML = s;
+}
+svg.onpointerdown = e => {
+  const i = e.target.dataset.i;
+  if (i == null) { sel = null; render(); return; }
+  e.preventDefault();
+  sel = +i; const p = pt(e), it = state.items[sel];
+  drag = { dx: it.x - p.x, dy: it.y - p.y };
+  svg.setPointerCapture(e.pointerId); svg.classList.add('dragging');
+  renderProps(); redraw();
+};
+svg.onpointermove = e => {
+  if (!drag) return;
+  const p = pt(e), it = state.items[sel];
+  const others = state.items.filter((_, j) => j !== sel);
+  const x = p.x + drag.dx, y = p.y + drag.dy;
+  if (e.altKey) { guideX = guideY = null; it.x = +x.toFixed(2); it.y = +y.toFixed(2); } // Alt = sans aimant
+  else {
+    guideX = magnet(x, [W()/2, ...others.map(o => o.x)]);
+    guideY = magnet(y, others.map(o => o.y));
+    it.x = guideX ?? snap(x); it.y = guideY ?? snap(y);
+  }
+  redraw();
+};
+svg.onpointerup = svg.onpointercancel = () => {
+  if (!drag) return;
+  drag = null; guideX = guideY = null; svg.classList.remove('dragging');
+  render();
+};
+$('grid').oninput = render;
+
+document.onkeydown = e => {
+  if (sel == null || e.target.tagName === 'INPUT') return;
+  const it = state.items[sel], s = (e.shiftKey ? 10 : 1) * (+$('grid').value || 0.1);
+  const mv = {ArrowLeft:[-s,0], ArrowRight:[s,0], ArrowUp:[0,-s], ArrowDown:[0,s]}[e.key];
+  if (mv) { it.x = +(it.x + mv[0]).toFixed(2); it.y = +(it.y + mv[1]).toFixed(2); render(); e.preventDefault(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { del(); e.preventDefault(); }
+  else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) { dup(); e.preventDefault(); }
+};
+
+// Fichiers
+function download(name, data, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type})); a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+}
+const baseName = () => `eurorack_${state.fmt}_${state.hp}HP`;
+$('exSvg').onclick = () => {
+  const w = W(), h = H(), keepSel = sel; sel = null;
+  const out = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">${panelSvg(false)}</svg>`;
+  sel = keepSel;
+  download(baseName() + '.svg', out, 'image/svg+xml');
+};
+$('save').onclick = () => download(baseName() + '.json', JSON.stringify(state, null, 1), 'application/json');
+$('load').onclick = () => $('file').click();
+$('file').onchange = async () => {
+  try {
+    state = {...state, ...JSON.parse(await $('file').files[0].text())};
+    for (const k of ['fmt','hp','nholes']) $(k).value = state[k];
+    sel = null; render();
+  } catch (err) { $('props').textContent = 'Fichier illisible : ' + err.message; }
+  $('file').value = '';
+};
+
+render();
+</script>
+</body>
+</html>
