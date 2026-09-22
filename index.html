@@ -83,6 +83,19 @@
   body.v3d .only3d { display:inline-block; }
   body.v3d .no3d { display:none; }
 
+  /* Barre d'édition horizontale, sous le visuel : apparaît quand un élément est sélectionné */
+  #editbar { position:sticky; bottom:52px; z-index:5; width:100%; max-width:1100px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+             box-shadow:0 4px 18px #0002; padding:8px 10px; display:none; }
+  #editbar.on { display:block; }
+  #editbar #props { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; }
+  #editbar .prow { margin:0; width:auto; flex:0 0 auto; }
+  #editbar .prow label { flex:0 0 auto; min-width:0; }
+  #editbar .prow label input[type=number] { width:72px; }
+  #editbar .prow label input[type=text] { width:130px; }
+  #editbar .caps { width:auto; }
+  #editbar .caps button { flex:0 0 auto; width:66px; }
+  #editbar .row { margin:0; }
+  #editbar .fp { width:130px; }
   .viewbar { position:sticky; bottom:0; padding:8px 12px; background:var(--bg); border-radius:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
   .seg { display:inline-flex; border:1px solid #999; border-radius:8px; overflow:hidden; }
   .seg button { margin:0; border:0; border-radius:0; padding:8px 16px; font-size:14px; background:#fff; }
@@ -95,6 +108,7 @@
   /* Mobile : visuel en haut (cadré automatiquement), réglages en dessous */
   @media (max-width: 760px) {
     body { flex-direction:column; height:100dvh; }
+    #editbar { bottom:0; max-height:42dvh; overflow:auto; }
     main { order:0; flex:none; height:58dvh; padding:8px; gap:6px; overflow:hidden; }
     aside { order:1; width:auto; flex:1; min-height:0; border-right:0; border-top:1px solid var(--line); }
     #zoomRow { display:none; }
@@ -141,10 +155,6 @@
     <div class="pal" id="iconres"></div>
   </div>
   <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder (avec Maj = image de référence à décalquer).</p>
-  </details>
-
-  <details open><summary>Élément sélectionné</summary>
-  <div id="props" class="info">Clique sur un élément.</div>
   </details>
 
   <details open><summary>Mes modules</summary>
@@ -205,9 +215,11 @@
 <main>
   <svg id="view" xmlns="http://www.w3.org/2000/svg"></svg>
   <div id="view3d"><div id="v3dmsg"></div></div>
+  <div id="editbar"><div id="props"></div></div>
   <div class="viewbar">
     <button id="undo" title="Annuler la dernière action (⌘Z)">↶ Annuler</button><button id="redo" title="Rétablir (⇧⌘Z)">↷ Rétablir</button><button id="clear" title="Vider le panneau (annulable avec ⌘Z)">Vider</button>
-    <div class="seg"><button id="vPlan" class="on">Plan</button><button id="vReal">Aperçu<span class="long"> réaliste</span></button><button id="v3d">3D</button></div>
+    <div class="seg"><button id="vPlan" class="on">Plan</button><button id="vReal">Aperçu</button><button id="v3d">3D</button></div>
+    <label id="hideRow" title="Ne montrer que la plaque percée et la gravure">Sans composants <input id="hide" type="checkbox"></label>
     <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option><option value="mdf">MDF</option></select>
     <button id="fit3d" class="only3d" title="Recentrer">⟲</button><button id="png3d" class="only3d"><span class="long">Image </span>PNG</button>
     <span id="warn" class="no3d"></span><span id="status"></span>
@@ -322,6 +334,8 @@ function slotPath(x, y, d, L) { // trou oblong horizontal centré sur (x,y)
 
 // Rendu réaliste (écran seulement, jamais exporté). Cotes approximatives des composants courants.
 function realSvg(it, i) {
+  if ($('hide').checked) return `<circle data-i="${i}" cx="${it.x}" cy="${it.y}" r="${it.d/2}" fill="#15171a"/>`
+    + (i === sel ? `<circle cx="${it.x}" cy="${it.y}" r="${it.d/2 + 1}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>` : '');
   const {x, y} = it, a = `data-i="${i}"`, col = it.color || '#e22';
   const circ = (r, f, extra = '') => `<circle ${a} cx="${x}" cy="${y}" r="${r}" fill="${f}" ${extra}/>`;
   const hex = r => `<polygon ${a} points="${[0,1,2,3,4,5].map(k => `${x + r*Math.cos(k*Math.PI/3 + Math.PI/6)},${y + r*Math.sin(k*Math.PI/3 + Math.PI/6)}`).join(' ')}" fill="url(#metal)" stroke="#666" stroke-width="0.1"/>`;
@@ -372,6 +386,7 @@ function realSvg(it, i) {
 const scallop = (R, lobes, steps) => Array.from({length:steps}, (_, k) => { const t = k/steps*2*Math.PI, r = R - 1.1*Math.sin(lobes*t/2)**2; return [r*Math.cos(t), r*Math.sin(t)]; });
 
 function realRect(it, i) {
+  if ($('hide').checked) return `<rect data-i="${i}" x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" rx="${it.r||0}" fill="#15171a" stroke="${i === sel ? '#d33' : 'none'}" stroke-width="0.3"/>`;
   const {x, y, w, h} = it, x0 = x - w/2, y0 = y - h/2, a = `data-i="${i}"`, ns = 'pointer-events="none"';
   let s = '', bw = w, bh = h;
   if (it.kind === 'vu') { // VU-mètre à aiguille : cadran ambré, échelle, zone rouge
@@ -423,6 +438,7 @@ const barColor = (k, n) => k >= n - 1 ? '#ff2a1a' : k >= Math.round(n*0.65) ? '#
 const barLit = (k, n) => k < Math.round(n*0.7);
 function realBar(it, i) {
   const a = `data-i="${i}"`, r = it.d/2;
+  if ($('hide').checked) return barPts(it).map(([px, py]) => `<circle ${a} cx="${px}" cy="${py}" r="${r}" fill="#15171a"/>`).join('');
   let s = barPts(it).map(([px, py], k) => `<circle ${a} cx="${px}" cy="${py}" r="${r + 0.3}" fill="#333"/><circle ${a} cx="${px}" cy="${py}" r="${r}" fill="${barColor(k, it.n)}" fill-opacity="${barLit(k, it.n) ? 1 : 0.28}"/>`
     + (barLit(k, it.n) ? `<circle cx="${px}" cy="${py}" r="${r}" fill="url(#shine)" pointer-events="none"/>` : '')).join('');
   if (i === sel) { const L = (it.n - 1)*it.pitch + it.d + 3, T = it.d + 3, [bw, bh] = it.vertical ? [T, L] : [L, T];
@@ -612,7 +628,8 @@ function render() {
 
 function renderProps() {
   const it = state.items[sel], p = $('props');
-  if (!it) { p.innerHTML = 'Clique sur un élément.'; return; }
+  $('editbar').classList.toggle('on', !!it);
+  if (!it) { p.innerHTML = ''; return; }
   // Lignes de propriétés : les champs liés (X/Y, largeur/hauteur…) tiennent sur une seule ligne
   const rows = { hole:[[['x','X'],['y','Y']], [['rot','Rotation (°)','rot']], [['d','Ø'],['size','Taille étiq.']], [['label','Étiquette','text']], [['font','Police','font']],
                        ...(COLORED.includes(it.kind) ? [[['color','Couleur','color']]] : []),
@@ -1058,7 +1075,8 @@ async function build3d() {
     const tex = new T.CanvasTexture(await engraveCanvas(PANEL[pcol].ink));
     tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const eng = new T.Mesh(new T.PlaneGeometry(w, h), M('#fff', 0, 0.8, {map:tex, transparent:true, polygonOffset:true, polygonOffsetFactor:-2}));
-    eng.position.z = 0.01; eng.receiveShadow = true; g.add(eng);
+    eng.position.z = 0.02; eng.receiveShadow = true; g.add(eng);
+    const FRONT = 0.08; // les pièces démarrent au-dessus du calque de gravure, sinon les faces scintillent
 
     // Vis de fixation
     for (const m of mountHoles()) {
@@ -1070,7 +1088,7 @@ async function build3d() {
       } else if (state.screw === 'fraisee') s.add(cyl(2.9, 0.06, mat.metal), cyl(1.15, 0.08, mat.dark, 0.01, 6)); // à fleur de la plaque
       else if (state.screw === 'chc') s.add(cyl(2.75, 3, mat.metal, 0, 40, 2.55), cyl(1.3, 0.08, mat.dark, 2.97, 6));
       else s.add(cyl(2.8, 1.1, mat.metal, 0, 32, 2.6), ...cross(1.05));
-      s.position.set(cx, cy, 0); g.add(s);
+      s.position.set(cx, cy, FRONT); g.add(s);
     }
 
     // Composants (cotes des aperçus 2D ; hauteurs typiques)
@@ -1084,9 +1102,9 @@ async function build3d() {
     const led = (r, color, lit) => { const lm = M(color, 0, 0.1, {emissive: color, emissiveIntensity: lit ? 0.5 : 0.04, transparent: true, opacity: lit ? 0.94 : 0.55});
       const dome = mesh(new T.SphereGeometry(r, 32, 16, 0, Math.PI*2, 0, Math.PI/2), lm); dome.rotation.x = Math.PI/2; dome.position.z = 1.2;
       const o = new T.Group(); o.add(cyl(r, 1.2, lm), dome); return o; };
-    for (const it of state.items) {
+    for (const it of $('hide').checked ? [] : state.items) { // « Sans composants » : plaque percée et gravure seules
       if (it.type === 'bar') {
-        barPts(it).forEach(([bx, by], k) => { const o = led(it.d/2, barColor(k, it.n), barLit(k, it.n)), [px, py] = P(...rotPt(it, bx, by)); o.position.set(px, py, 0); g.add(o); });
+        barPts(it).forEach(([bx, by], k) => { const o = led(it.d/2, barColor(k, it.n), barLit(k, it.n)), [px, py] = P(...rotPt(it, bx, by)); o.position.set(px, py, FRONT); g.add(o); });
         continue;
       }
       if (it.type === 'rect' && it.kind) {
@@ -1095,7 +1113,7 @@ async function build3d() {
           try { // fader réel (course 45 mm) mis à l'échelle de la fente
             const long = Math.max(it.w, it.h), part = await modelPart('fader', -7.6, long/45);
             if (it.h >= it.w) part.rotation.z = Math.PI/2;
-            c.add(part); c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+            c.add(part); c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
             continue;
           } catch (err) { msg('Modèle 3D indisponible, dessin simplifié utilisé'); }
         }
@@ -1109,7 +1127,7 @@ async function build3d() {
           const depth = {vu:0.8, oled:0.3, rled:1.2, rocker:3}[it.kind];
           face.position.z = depth + 0.02; c.add(box(pw, ph, depth, mat.gloss, 0, 0, depth/2), face);
         }
-        c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+        c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
         continue;
       }
       if (it.type !== 'hole') continue;
@@ -1123,7 +1141,7 @@ async function build3d() {
             const cap = CAP_MODELS[it.cap || ''], want = 2*capR(it, it.kind === 'pot16' ? 8.5 : 5.5);
             c.add(await modelPart(cap.f, cap.h, want/cap.d, true));
           }
-          c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+          c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
           continue;
         } catch (err) { msg('Modèle 3D indisponible, dessin simplifié utilisé'); } // hors ligne : repli sur les formes simples
       }
@@ -1157,7 +1175,7 @@ async function build3d() {
         case 'button': c.add(cyl(it.d/2 + 1.2, 2, mat.metal), cyl(it.d/2, 4.5, col)); break;
         case 'bigbutton': { const k = it.d/15; c.add(cyl(9.5*k, 2.6, mat.gloss, 0, 64, 9.1*k), cyl(6.6*k, 2.9, mat.black), cyl(6.25*k, 3.6, col)); break; }
       }
-      c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+      c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
     }
 
     if (V3.group) { // libérer la scène précédente
@@ -1356,10 +1374,11 @@ bind('fmt', 'fmt', false); bind('hp', 'hp'); bind('nholes', 'nholes', false); bi
 $('w').oninput = () => { state.w = +$('w').value || null; paint(); };
 $('w').onchange = render;
 $('name').oninput = () => { state.name = $('name').value; clearTimeout($('name').t); $('name').t = setTimeout(commit, 500); };
-$('detail').oninput = render; $('rails').oninput = render; $('cotes').oninput = render; $('grid').oninput = render; $('zoom').oninput = render; $('pcol').oninput = () => paint();
+$('hide').oninput = render; $('detail').oninput = render; $('rails').oninput = render; $('cotes').oninput = render; $('grid').oninput = render; $('zoom').oninput = render; $('pcol').oninput = () => paint();
 function setView(v) {
   view = v;
   for (const [id, m] of [['vPlan', 'plan'], ['vReal', 'real'], ['v3d', '3d']]) $(id).classList.toggle('on', v === m);
+  $('hideRow').style.display = v === 'plan' ? 'none' : '';
   document.body.classList.toggle('v3d', v === '3d');
   render();
 }
