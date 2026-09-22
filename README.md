@@ -8,6 +8,7 @@ Dessinez les faces avant de vos modules Eurorack directement dans le navigateur,
 - 14 polices, dont plusieurs au style des synthés vintage ;
 - aperçu réaliste et vue 3D (aluminium, noir, blanc ou MDF), avec les modèles 3D réels des composants ;
 - banque de symboles à graver (masse, formes d'onde, filtres, jack, casque…) ;
+- image de référence en filigrane, pour décalquer un agencement existant ;
 - bibliothèque de modules, import/export en .json, annuler/rétablir ;
 - export SVG 1:1 en mm pour la découpe et la gravure laser (textes convertis en tracés).
 
@@ -20,3 +21,5 @@ Licence MIT.
 ## Crédits
 
 Les modèles 3D des composants (dossier `models/`) proviennent de la bibliothèque [Jolin](https://jolin.tech/componentslibrary), sous licence CC BY 4.0. Ils ont été convertis et allégés pour le web.
+
+Pour les caractéristiques des modules du commerce (largeur en HP, profondeur, visuels de panneaux), la référence est [ModularGrid](https://modulargrid.net/) : consultation manuelle, l'application ne fait aucune récupération automatique. Les cotes du format suivent le standard Doepfer A-100.

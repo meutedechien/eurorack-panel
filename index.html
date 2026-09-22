@@ -133,7 +133,7 @@
 
   <details open><summary>2 · Composants</summary>
   <div id="presets"></div>
-  <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder.</p>
+  <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder (avec Maj = image de référence à décalquer).</p>
   </details>
 
   <details open><summary>Élément sélectionné</summary>
@@ -164,7 +164,17 @@
   </details>
 
   <details><summary>Crédits</summary>
-  <p class="info">Modèles 3D des composants : <a href="https://jolin.tech/componentslibrary" target="_blank" rel="noopener">Jolin</a>, licence CC BY 4.0.</p>
+  <p class="info">Modèles 3D des composants : <a href="https://jolin.tech/componentslibrary" target="_blank" rel="noopener">Jolin</a>, licence CC BY 4.0.<br>
+  Banque de données des modules du commerce (largeurs en HP, profondeurs, visuels de panneaux) : <a href="https://modulargrid.net/" target="_blank" rel="noopener">ModularGrid</a> — consultation manuelle, aucune récupération automatique.<br>
+  Cotes du format : Doepfer A-100, <a href="https://www.exploding-shed.com/synth-diy-guides/standards-of-eurorack/eurorack-dimensions/" target="_blank" rel="noopener">Exploding Shed</a>.</p>
+  </details>
+
+  <details><summary>Image de référence</summary>
+  <div class="row"><button id="bgPick">Choisir une image…</button><button id="bgDel">Retirer</button></div>
+  <div class="prow"><label>Largeur (mm) <input id="bgW" type="number" step="0.5" value="40"></label><label>Opacité <input id="bgO" type="range" min="5" max="100" value="35"></label></div>
+  <div class="prow"><label>X <input id="bgX" type="number" step="0.5" value="0"></label><label>Y <input id="bgY" type="number" step="0.5" value="0"></label></div>
+  <p class="info">Pour décalquer un agencement (capture ModularGrid, photo, scan). Affichée au dos du plan, jamais exportée ni enregistrée avec le module : elle disparaît au rechargement.</p>
+  <input id="bgfile" type="file" accept="image/*" hidden>
   </details>
 
   <details><summary>Affichage</summary>
@@ -520,6 +530,13 @@ function screwSvg(x, y) {
   }
 }
 
+// Image de référence à décalquer : en session seulement, jamais exportée ni enregistrée
+let bg = null;
+function bgSvg() {
+  if (!bg) return '';
+  return `<image href="${bg.src}" x="${bg.x}" y="${bg.y}" width="${bg.w}" height="${(bg.w/bg.ratio).toFixed(2)}" opacity="${bg.op}" preserveAspectRatio="xMidYMid meet" pointer-events="none"/>`;
+}
+
 let REAL = false, GUIDES = false; // pendant le dessin : aperçu réaliste / repères d'écran (jamais dans l'export)
 function panelSvg(guides) {
   const w = W(), h = H();
@@ -531,11 +548,11 @@ function panelSvg(guides) {
       <feComponentTransfer in="m" result="mask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer>
       <feFlood flood-color="${PANEL[$('pcol').value].ink}"/><feComposite in2="mask" operator="in"/>
     </filter></defs>`;
-    s += `<rect x="0" y="0" width="${w}" height="${h}" fill="${PANEL[$('pcol').value].fill}" stroke="#888" stroke-width="0.15"/>`;
+    s += `<rect x="0" y="0" width="${w}" height="${h}" fill="${PANEL[$('pcol').value].fill}" stroke="#888" stroke-width="0.15"/>` + bgSvg();
     s += mountHoles().map(p => screwSvg(p.x, p.y)).join('');
     return s + state.items.map(itemSvg).join('') + issuesSvg() + dimsSvg();
   }
-  let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${guides ? '#e8e8e8' : 'none'}" stroke="#f00" stroke-width="0.1"/>`;
+  let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${guides ? '#e8e8e8' : 'none'}" stroke="#f00" stroke-width="0.1"/>` + (guides ? bgSvg() : '');
   if (guides) {
     const r = RAIL[state.fmt];
     if ($('rails').checked && r) {
@@ -1198,6 +1215,22 @@ async function loadLogo(file, x = W()/2, y = H()/2) {
     add({type:'logo', img, ratio: el.width/el.height, x:snap(x), y:snap(y), w});
   }
 }
+async function setBg(file) {
+  const src = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(file); });
+  const im = new Image(); im.src = src; await im.decode();
+  bg = { src, ratio: im.width/im.height, w: +W().toFixed(1), x: 0, y: +((H() - W()/(im.width/im.height))/2).toFixed(1), op: +$('bgO').value/100 };
+  $('bgW').value = bg.w; $('bgX').value = bg.x; $('bgY').value = bg.y;
+  paint(); msg('Image de référence placée (largeur du panneau)');
+}
+$('bgPick').onclick = () => $('bgfile').click();
+$('bgfile').onchange = async () => {
+  try { await setBg($('bgfile').files[0]); } catch (err) { msg('Image illisible : ' + err.message); }
+  $('bgfile').value = '';
+};
+$('bgDel').onclick = () => { bg = null; paint(); };
+for (const [id, k, f] of [['bgW', 'w', v => +v], ['bgX', 'x', v => +v], ['bgY', 'y', v => +v], ['bgO', 'op', v => +v/100]])
+  $(id).oninput = () => { if (bg) { bg[k] = f($(id).value); paint(); } };
+
 $('logofile').onchange = async () => {
   try { await loadLogo($('logofile').files[0]); } catch (err) { msg('Logo illisible : ' + err.message); }
   $('logofile').value = '';
@@ -1207,7 +1240,10 @@ svg.ondragover = e => e.preventDefault();
 svg.ondrop = e => {
   e.preventDefault();
   const p = pt(e), f = e.dataTransfer.files[0];
-  if (f) { loadLogo(f, p.x, p.y).catch(err => msg('Logo illisible : ' + err.message)); return; }
+  if (f) { // Maj enfoncée = image de référence à décalquer, sinon logo
+    (e.shiftKey ? setBg(f) : loadLogo(f, p.x, p.y)).catch(err => msg('Image illisible : ' + err.message));
+    return;
+  }
   const k = +e.dataTransfer.getData('text/plain');
   if (PALETTE[k]) place(PALETTE[k][1], p.x, p.y);
 };
