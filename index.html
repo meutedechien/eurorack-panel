@@ -150,10 +150,13 @@
   <div class="row">
     <button id="expMod">Exporter ce module</button>
     <button id="impMod">Importer…</button>
+    <button id="impSvg" title="Convertir un panneau SVG (fabricants open source) en éléments modifiables">Importer un panneau SVG…</button>
     <button id="expLib">Exporter tout</button>
   </div>
+  <p class="info">L'import d'un panneau SVG convertit cercles, rectangles et textes en éléments modifiables : pratique pour repartir d'un module open source (Mutable, Befaco, Music Thing…). Les diamètres connus deviennent les bons composants.</p>
   <p class="info">La bibliothèque vit dans ce navigateur. Exporte en fichier .json pour sauvegarder ou partager (un ou plusieurs modules par fichier).</p>
   <input id="file" type="file" accept=".json,application/json" multiple hidden>
+  <input id="svgfile" type="file" accept=".svg,image/svg+xml" hidden>
   <input id="logofile" type="file" accept=".svg,image/svg+xml,image/png,image/jpeg" hidden>
   </details>
 
@@ -818,6 +821,55 @@ $('file').onchange = async () => {
   if (mods.length === 1) { state = mods[0]; sel = null; syncInputs(); render(); }
   renderLib();
   msg(mods.length === 1 ? `« ${mods[0].name || 'Sans nom'} » importé` : `${mods.length} modules importés dans la bibliothèque`);
+};
+
+// Import d'un panneau SVG existant (Mutable, Befaco, Music Thing…) : cercles → trous, rectangles → découpes, textes → gravure
+const KIND_BY_D = [[3.1, 'led'], [5.1, 'led'], [6, 'jack'], [7, 'pot9'], [7.5, 'pot16'], [9.5, 'jack635'], [11, 'dc'], [11.5, 'bigbutton'], [15, 'bigbutton'], [15.5, 'midi'], [27, 'arcade']];
+const kindByD = d => { const m = KIND_BY_D.find(([v]) => Math.abs(v - d) <= 0.45); return m ? m[1] : 'hole'; };
+async function importPanelSvg(file) {
+  const doc = new DOMParser().parseFromString(await file.text(), 'image/svg+xml');
+  if (doc.documentElement.nodeName !== 'svg') throw new Error('SVG invalide');
+  cleanSvg(doc);
+  const root = doc.documentElement, holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;left:-9999px;top:0;width:1000px;height:1000px;overflow:hidden';
+  holder.append(root); document.body.append(holder);
+  try {
+    const vb = (root.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+    const vbW = vb.length === 4 ? vb[2] : parseFloat(root.getAttribute('width')) || 100;
+    const vbH = vb.length === 4 ? vb[3] : parseFloat(root.getAttribute('height')) || 100;
+    const mmW = /mm/.test(root.getAttribute('width') || '') ? parseFloat(root.getAttribute('width')) : null;
+    const k = (mmW || W()) / vbW; // facteur vers les mm : cotes du fichier si elles y sont, sinon largeur du panneau courant
+    const hmm = vbH * k, panelW = mmW || W();
+    const inv = root.getScreenCTM()?.inverse();
+    const toRoot = el => inv && el.getScreenCTM() ? inv.multiply(el.getScreenCTM()) : null;
+    const items = [];
+    let skipped = 0;
+    for (const el of root.querySelectorAll('circle, ellipse, rect, text')) {
+      const m = toRoot(el); if (!m) { skipped++; continue; }
+      const b = el.getBBox(), sc = Math.sqrt(Math.abs(m.a*m.d - m.b*m.c)) * k;
+      const c = new DOMPoint(b.x + b.width/2, b.y + b.height/2).matrixTransform(m);
+      const x = +(c.x*k).toFixed(2), y = +(c.y*k).toFixed(2), w = +(b.width*sc).toFixed(2), h = +(b.height*sc).toFixed(2);
+      if (x < -1 || y < -1 || x > panelW + 1 || y > hmm + 1) { skipped++; continue; }
+      if (el.nodeName === 'text') { const fs = parseFloat(getComputedStyle(el).fontSize) * sc || 3;
+        items.push({type:'text', x, y: +(y).toFixed(2), text: el.textContent.trim().slice(0, 80), size: +fs.toFixed(2), bold: false}); continue; }
+      if (el.nodeName === 'rect') {
+        if (w > panelW*0.9 && h > hmm*0.9) { skipped++; continue; } // contour du panneau
+        items.push({type:'rect', x, y, w, h, r: +(parseFloat(el.getAttribute('rx')) * sc || 0).toFixed(2)}); continue;
+      }
+      const d = +((w + h)/2).toFixed(2); // cercle ou ellipse quasi ronde
+      if (y < 6 || y > hmm - 6) { skipped++; continue; } // trous de fixation : régénérés par l'app
+      items.push({type:'hole', kind: kindByD(d), d, label:'', size:2.5, x, y});
+    }
+    if (!items.length) throw new Error('aucune forme exploitable');
+    state = normalize({...state, id: uid(), name: file.name.replace(/\.svg$/i, ''), hp: Math.max(1, Math.round(panelW/HP)), w: mmW ? +panelW.toFixed(2) : state.w, items});
+    sel = null; syncInputs(); render();
+    msg(`${items.length} éléments importés${skipped ? `, ${skipped} ignorés` : ''}${mmW ? '' : ' — cotes déduites de la largeur du panneau, à vérifier'}`);
+  } finally { holder.remove(); }
+}
+$('impSvg').onclick = () => $('svgfile').click();
+$('svgfile').onchange = async () => {
+  try { await importPanelSvg($('svgfile').files[0]); } catch (err) { msg('Import impossible : ' + err.message); }
+  $('svgfile').value = '';
 };
 
 function syncInputs() {

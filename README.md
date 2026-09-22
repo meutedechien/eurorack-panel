@@ -9,6 +9,7 @@ Dessinez les faces avant de vos modules Eurorack directement dans le navigateur,
 - aperçu réaliste et vue 3D (aluminium, noir, blanc ou MDF), avec les modèles 3D réels des composants ;
 - banque de symboles à graver (masse, formes d'onde, filtres, jack, casque…) ;
 - image de référence en filigrane, pour décalquer un agencement existant ;
+- import d'un panneau SVG existant (fabricants open source) converti en éléments modifiables ;
 - bibliothèque de modules, import/export en .json, annuler/rétablir ;
 - export SVG 1:1 en mm pour la découpe et la gravure laser (textes convertis en tracés).
 
