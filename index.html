@@ -945,6 +945,10 @@ const MODELS = { jack:{f:'jack', z:-10.9}, pot9:{f:'pot9_body', z:-6.3}, pot16:{
                  toggle:{f:'toggle', z:-6.6}, button:{f:'button', z:-12.9} };
 const CAP_MODELS = { '':{f:'knob_std', d:15.66, h:14.6}, alu9:{f:'knob_alu9', d:8, h:14}, jupe27:{f:'knob_jupe27', d:18.8, h:14.7} }; // sommet du bouton en Y=0 : à retourner
 const modelCache = {};
+// Les .glb ne peuvent pas être lus depuis un fichier local (sécurité du navigateur) : il faut la version en ligne
+const MODEL_ERR = () => location.protocol === 'file:'
+  ? 'Modèles 3D non chargeables depuis un fichier local — ouvre la version en ligne (meutedechien.github.io/eurorack-panel)'
+  : 'Modèle 3D indisponible (connexion ?), dessin simplifié utilisé';
 let GLTF = null;
 async function loadModel(name) {
   GLTF ??= (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
@@ -1115,7 +1119,7 @@ async function build3d() {
             if (it.h >= it.w) part.rotation.z = Math.PI/2;
             c.add(part); c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
             continue;
-          } catch (err) { msg('Modèle 3D indisponible, dessin simplifié utilisé'); }
+          } catch (err) { msg(MODEL_ERR()); }
         }
         if (it.kind === 'fader') {
           c.add(box(1.2, 1.2, 1.5, mat.dark, 0, 0, 0.25), box(9, 12, 7, mat.black, 0, 0, 4.5), box(8, 0.5, 0.1, mat.white, 0, 0, 8.05),
@@ -1143,7 +1147,7 @@ async function build3d() {
           }
           c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
           continue;
-        } catch (err) { msg('Modèle 3D indisponible, dessin simplifié utilisé'); } // hors ligne : repli sur les formes simples
+        } catch (err) { msg(MODEL_ERR()); } // hors ligne ou fichier local : repli sur les formes simples
       }
       if (BODY[it.kind]) c.add(box(...BODY[it.kind], 10, M('#2f5d9a', 0.1, 0.5), 0, 0, -thick - 5)); // corps derrière la plaque
       const mark = (y0, len, z) => box(0.5, len, 0.12, mat.white, 0, y0 + len/2, z + 0.06);
