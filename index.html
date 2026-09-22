@@ -941,9 +941,9 @@ $('exSvg').onclick = async () => {
 // ---------- Vue 3D (three.js, chargé à la première ouverture) ----------
 
 // Modèles 3D réels (Jolin, CC BY 4.0) : mètres, axe du composant sur +Y ; chargés à la demande
-const MODELS = { jack:{f:'jack', z:-10.9}, pot9:{f:'pot9_body', z:-6.3}, pot16:{f:'pot16_body', z:-3.6},
+const MODELS = { jack:{f:'jack', z:-10.9}, pot9:{f:'pot9_body', z:-6.3, top:21.3}, pot16:{f:'pot16_body', z:-3.6, top:18.6},
                  toggle:{f:'toggle', z:-6.6}, button:{f:'button', z:-12.9} };
-const CAP_MODELS = { '':{f:'knob_std', d:15.66, h:14.6}, alu9:{f:'knob_alu9', d:8, h:14}, jupe27:{f:'knob_jupe27', d:18.8, h:14.7} }; // sommet du bouton en Y=0 : à retourner
+const CAP_MODELS = { '':{f:'knob_std', d:15.66, h:14.6}, alu9:{f:'knob_alu9', d:8, h:14}, jupe27:{f:'knob_jupe27', d:18.8, h:14.7} };
 const modelCache = {};
 // Les .glb ne peuvent pas être lus depuis un fichier local (sécurité du navigateur) : il faut la version en ligne
 const MODEL_ERR = () => location.protocol === 'file:'
@@ -1138,13 +1138,17 @@ async function build3d() {
       const [cx, cy] = P(it.x, it.y), c = new T.Group(), col = M(it.color || '#e22222', 0.05, 0.4);
       if ($('detail').checked && MODELS[it.kind] && !(it.kind === 'toggle' && it.pos === 'mid')) {
         try { // modèle réel ; les potentiomètres reçoivent en plus leur bouton
-          const m = MODELS[it.kind], part = await modelPart(m.f, m.z);
+          const m = MODELS[it.kind];
+          let zOff = m.z, cap = null, capScale = 1;
+          if (KNOBS.includes(it.kind)) { // l'axe doit rester sous le dessus du bouton, qui est mis à ton diamètre
+            cap = CAP_MODELS[it.cap || ''];
+            capScale = 2*capR(it, it.kind === 'pot16' ? 8.5 : 5.5) / cap.d;
+            if (m.top) zOff = +(cap.h*capScale - 1 - m.top).toFixed(2);
+          }
+          const part = await modelPart(m.f, zOff);
           if (it.kind === 'toggle' && it.pos === 'down') part.rotation.z = Math.PI;
           c.add(part);
-          if (KNOBS.includes(it.kind)) {
-            const cap = CAP_MODELS[it.cap || ''], want = 2*capR(it, it.kind === 'pot16' ? 8.5 : 5.5);
-            c.add(await modelPart(cap.f, cap.h, want/cap.d, true));
-          }
+          if (cap) c.add(await modelPart(cap.f, 0, capScale)); // base du bouton au ras de la plaque, dessus vers l'avant
           c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
           continue;
         } catch (err) { msg(MODEL_ERR()); } // hors ligne ou fichier local : repli sur les formes simples
