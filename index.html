@@ -19,6 +19,9 @@
   label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0; }
   input, select { width:130px; padding:3px 5px; }
   input[type=checkbox] { width:auto; }
+  input[type=color] { width:28px; height:28px; flex:0 0 auto; padding:0; border:1px solid #999; border-radius:50%; background:none; cursor:pointer; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding:0; }
+  input[type=color]::-webkit-color-swatch { border:none; border-radius:50%; }
   #name { width:100%; font-size:15px; padding:5px 7px; }
   button { margin:2px 2px 2px 0; padding:4px 8px; cursor:pointer; }
   button:disabled { opacity:.4; cursor:default; }
@@ -94,6 +97,8 @@
   #editbar .prow { margin:0; width:auto; flex:0 0 auto; }
   #editbar .prow label { flex:0 0 auto; min-width:0; }
   #editbar .prow label input[type=number] { width:72px; }
+  #editbar .prow label input[type=color], .prow label input[type=color] { flex:0 0 28px; width:28px; }
+  #editbar .ptitle { font-weight:600; margin-right:4px; white-space:nowrap; }
   #editbar .prow label input[type=text] { width:130px; }
   #editbar .caps { width:auto; }
   #editbar .caps button { flex:0 0 auto; width:66px; }
@@ -231,7 +236,7 @@
 </main>
 
 <script>
-const VERSION = '1.0', BUILD = '22/09/2026';
+const VERSION = '1.1', BUILD = '22/09/2026';
 const HP = 5.08;
 // Largeurs réelles Doepfer (table exploding-shed.com)
 const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80,16:80.90,18:91.30,20:101.30,22:111.40,28:141.90,42:213.00};
@@ -631,6 +636,16 @@ function render() {
 
 // ---------- Propriétés de l'élément sélectionné ----------
 
+// Nom lisible d'un élément, affiché dans la barre du bas
+const KIND_NAMES = { jack:'Jack 3,5 mm', jack635:'Jack 6,35 mm', midi:'MIDI DIN', dc:'Alim. DC', pot9:'Pot 9 mm', pot16:'Pot 16 mm',
+  encoder:'Encodeur', toggle:'Inter. à levier', button:'Bouton poussoir', bigbutton:'Bouton', arcade:"Bouton d'arcade", led:'LED', hole:'Trou libre' };
+const RECT_NAMES = { fader:'Fader', rocker:'Inter. on/off', vu:'VU-mètre', oled:'Écran OLED', rled:'LED rect. RGB', '':'Découpe rect.' };
+function itemName(it) {
+  if (it.type === 'hole') return (KIND_NAMES[it.kind] || 'Composant') + (it.kind === 'led' || it.kind === 'bigbutton' ? ` Ø${it.d}` : '');
+  if (it.type === 'rect') return RECT_NAMES[it.kind || ''] || 'Découpe';
+  return { bar:'Barre de LED', text:'Texte', logo:'Logo / symbole' }[it.type] || 'Élément';
+}
+
 let propsOpen = false; // détails de l'élément (étiquette, police, capuchon) repliés par défaut
 function renderProps() {
   const it = state.items[sel], p = $('props');
@@ -655,7 +670,7 @@ function renderProps() {
     ? `<label>${l} <input data-k="${k}" type="number" step="1" value="${esc(it[k] ?? 0)}"></label><button data-rot="-90" title="Tourner à gauche">↺</button><button data-rot="90" title="Tourner à droite (touche R)">↻</button>`
     : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="1" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`;
   const head = rows.slice(0, 2), more = rows.slice(2); // l'essentiel d'abord : position et rotation
-  p.innerHTML = head.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
+  p.innerHTML = `<b class="ptitle">${esc(itemName(it))}</b>` + head.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
     + `<div class="row"><button id="del" title="Supprimer">✕</button><button id="dup" title="Dupliquer">⧉</button><button id="cx" title="Centrer en X">⇹</button>`
     + (more.length ? `<button id="more">${propsOpen ? '− Moins' : '⋯ Plus'}</button>` : '') + `</div>`
     + (more.length && propsOpen ? `<div class="morerows">${more.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')}</div>` : '');
@@ -1171,7 +1186,7 @@ async function build3d() {
         const skirt = mesh(new T.ExtrudeGeometry(new T.Shape(scallop(13.5, 14, 168).map(([x, y]) => new T.Vector2(x, y))), {depth:4.5, bevelEnabled:false}), mat.black);
         c.add(skirt, cyl(10.2, 14, mat.black, 0, 64, 9.8), cyl(8.2, 0.3, mat.alu, 14), mark(10.4, 1.8, 4.5));
       } else switch (it.kind) {
-        case 'jack': c.add(cyl(4, 1.6, mat.metal, 0, 40), cyl(3, 3.4, mat.metal), cyl(1.8, 0.1, mat.dark, 3.35)); break;
+        case 'jack': c.add(cyl(4, 1.6, mat.metal, 0, 40), cyl(3, 3.4, mat.metal, 0.03), cyl(1.8, 0.1, mat.dark, 3.35)); break;
         case 'pot9': c.add(cyl(5.5, 11, mat.black, 0, 64, 5.1), mark(1.4, 3.4, 11)); break;
         case 'pot16': c.add(cyl(8.5, 14, mat.black, 0, 64, 7.9), mark(2.1, 5.6, 14)); break;
         case 'encoder': c.add(cyl(6, 12, mat.knurl, 0, 28), mark(1.5, 3.7, 12)); break;
@@ -1181,17 +1196,17 @@ async function build3d() {
           const stick = mesh(new T.CylinderGeometry(0.9, 1.25, 9, 24), mat.metal), tip = mesh(new T.SphereGeometry(1.25, 20, 12), mat.metal);
           stick.position.y = 4.5; tip.position.y = 9; lever.add(stick, tip);
           lever.position.z = 7; lever.rotation.x = (90 - 18*tilt) * Math.PI / 180;
-          c.add(cyl(4.62, 1.6, mat.metal, 0, 6), cyl(4.3, 0.4, mat.metal, 1.6), cyl(3, 5, mat.metal, 2, 40), lever); break; }
-        case 'arcade': c.add(cyl(it.d/2 + 3, 3, col, 0, 64, it.d/2 + 2.4), cyl(it.d/2 - 1.5, 5, col, 0, 64)); break;
-        case 'jack635': c.add(cyl(7, 1.8, mat.metal, 0, 6), cyl(5, 4, mat.metal), cyl(3.25, 0.1, mat.dark, 4)); break;
-        case 'dc': c.add(cyl(6.5, 2, mat.metal, 0, 36), cyl(5.2, 4, mat.metal), cyl(3.2, 0.1, mat.dark, 4), cyl(1.05, 3, mat.metal, 1.3)); break;
+          c.add(cyl(4.62, 1.6, mat.metal, 0, 6), cyl(4.3, 0.4, mat.metal, 1.6), cyl(3, 5, mat.metal, 2.03, 40), lever); break; }
+        case 'arcade': c.add(cyl(it.d/2 + 3, 3, col, 0, 64, it.d/2 + 2.4), cyl(it.d/2 - 1.5, 5, col, 0.03, 64)); break;
+        case 'jack635': c.add(cyl(7, 1.8, mat.metal, 0, 6), cyl(5, 4, mat.metal, 0.03), cyl(3.25, 0.1, mat.dark, 4)); break;
+        case 'dc': c.add(cyl(6.5, 2, mat.metal, 0, 36), cyl(5.2, 4, mat.metal, 0.03), cyl(3.2, 0.1, mat.dark, 4), cyl(1.05, 3, mat.metal, 1.3)); break;
         case 'midi': { // prise DIN derrière la plaque, vue à travers le trou
           const shell = mesh(new T.CylinderGeometry(7.3, 7.3, 1.4, 48, 1, true), mat.metal); shell.rotation.x = Math.PI/2; shell.position.z = -0.7;
           c.add(shell, cyl(7.3, 0.4, mat.black, -1.6), box(1.6, 1.3, 0.2, mat.metal, 0, -5.9, -1.1));
           for (const t of [0, 45, 90, 135, 180]) { const pin = cyl(0.6, 0.1, M('#555', 0.6, 0.4), -1.2); pin.position.x = 3.6*Math.cos(t*Math.PI/180); pin.position.y = 3.6*Math.sin(t*Math.PI/180); c.add(pin); }
           break; }
-        case 'button': c.add(cyl(it.d/2 + 1.2, 2, mat.metal), cyl(it.d/2, 4.5, col)); break;
-        case 'bigbutton': { const k = it.d/15; c.add(cyl(9.5*k, 2.6, mat.gloss, 0, 64, 9.1*k), cyl(6.6*k, 2.9, mat.black), cyl(6.25*k, 3.6, col)); break; }
+        case 'button': c.add(cyl(it.d/2 + 1.2, 2, mat.metal), cyl(it.d/2, 4.5, col, 0.03)); break;
+        case 'bigbutton': { const k = it.d/15; c.add(cyl(9.5*k, 2.6, mat.gloss, 0, 64, 9.1*k), cyl(6.6*k, 2.9, mat.black, 0.03), cyl(6.25*k, 3.6, col, 0.06)); break; }
       }
       c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
     }
