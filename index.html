@@ -2,34 +2,107 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Faces avant Eurorack</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto+Condensed:wght@400;700&family=Michroma&family=Audiowide&family=Orbitron:wght@400;700&family=Zen+Dots&family=Syncopate:wght@400;700&family=Oxanium:wght@400;700&family=Righteous&family=Monoton&family=Bungee&family=Major+Mono+Display&family=Share+Tech+Mono&family=Pacifico&display=swap">
+<!-- three.js n'est chargé qu'à l'ouverture de la vue 3D -->
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 <style>
-  :root { --bg:#f4f4f2; --fg:#222; --panel:#fff; --line:#ccc; --acc:#d33; }
+  :root { --bg:#f4f4f2; --fg:#222; --panel:#fff; --line:#ccc; --acc:#d33; --warn:#e8870e; }
   * { box-sizing: border-box; }
   body { margin:0; font:14px system-ui, sans-serif; background:var(--bg); color:var(--fg); display:flex; height:100vh; }
-  aside { width:300px; padding:12px; overflow-y:auto; background:var(--panel); border-right:1px solid var(--line); }
-  main { flex:1; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:20px; }
+  aside { width:310px; flex:none; padding:12px; overflow-y:auto; overflow-x:hidden; background:var(--panel); border-right:1px solid var(--line); }
+  aside h1 { font-size:15px; margin:0 0 8px; }
+  main { flex:1; min-width:0; overflow:auto; display:flex; flex-direction:column; align-items:center; padding:20px; gap:14px; }
   summary { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px; color:#666; cursor:pointer; }
   details { border-bottom:1px solid #eee; padding-bottom:6px; }
-  .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
-  .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
+  label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0; }
+  input, select { width:130px; padding:3px 5px; }
+  input[type=checkbox] { width:auto; }
+  #name { width:100%; font-size:15px; padding:5px 7px; }
+  button { margin:2px 2px 2px 0; padding:4px 8px; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:default; }
+  .info { font-size:12px; color:#666; }
+  .row { display:flex; gap:4px; flex-wrap:wrap; margin:4px 0; }
+
   #hpchips button { padding:2px 6px; font-size:12px; min-width:30px; }
   #hpchips button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+
+  .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+  .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
   .tile:hover { border-color:var(--acc); background:#fff; }
   .tile svg { width:44px; height:44px; display:block; margin:0 auto 2px; pointer-events:none; }
-  label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0; }
-  input, select { width:120px; padding:3px 5px; }
-  input[type=checkbox] { width:auto; }
-  button { margin:2px 2px 2px 0; padding:4px 8px; cursor:pointer; }
-  .info { font-size:12px; color:#666; }
-  svg#view { background:#fff; box-shadow:0 2px 10px #0002; touch-action:none; }
+
+  .caps { display:flex; gap:6px; margin:4px 0 8px; }
+  .caps button { flex:1; margin:0; padding:4px 2px; font-size:11px; border:1px solid var(--line); border-radius:6px; background:#fafafa; }
+  .caps button.on { border-color:var(--acc); background:#fff; box-shadow:0 0 0 1px var(--acc); }
+  .caps svg { width:40px; height:40px; display:block; margin:0 auto 2px; }
+
+  /* Sélecteur de police : liste en position fixe, calculée à l'ouverture, pour ne pas élargir la barre latérale */
+  .fp { position:relative; width:150px; }
+  .fp summary { list-style:none; text-transform:none; letter-spacing:0; font-weight:normal; color:inherit; margin:0; font-size:15px;
+                border:1px solid #999; border-radius:4px; padding:3px 22px 3px 6px; background:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fp summary::-webkit-details-marker { display:none; }
+  .fp summary::after { content:'▾'; position:absolute; right:6px; font-family:system-ui; color:#666; }
+  .fp .list { position:fixed; z-index:20; width:290px; overflow:auto; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 6px 20px #0003; padding:4px; }
+  .fp .opt { display:block; width:100%; text-align:left; border:0; border-radius:4px; background:none; margin:0; padding:6px 8px; cursor:pointer; }
+  .fp .opt:hover, .fp .opt.on { background:#f1e6e6; }
+  .fp .opt b { display:block; font-weight:normal; font-size:18px; line-height:1.2; }
+  .fp .opt i { display:block; font-style:normal; font-size:13px; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fp .opt small { font-family:system-ui; font-size:11px; color:#888; }
+
+  #lib { list-style:none; padding:0; margin:6px 0; max-height:240px; overflow:auto; }
+  #lib li { display:flex; align-items:center; gap:4px; padding:4px 6px; border-radius:6px; }
+  #lib li.cur { background:#f7eded; }
+  #lib li span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #lib li small { color:#888; }
+  #lib li button { margin:0; padding:2px 6px; font-size:12px; }
+  #dirty { color:var(--warn); font-size:12px; }
+
+  svg#view { background:#fff; box-shadow:0 2px 10px #0002; touch-action:none; flex:none; }
   .sel { stroke:var(--acc) !important; }
   svg#view [data-i] { pointer-events:all; cursor:grab; }
   svg#view.dragging, svg#view.dragging [data-i] { cursor:grabbing; }
+  #view3d { display:none; position:relative; width:100%; flex:1; min-height:420px; border-radius:10px; overflow:hidden; background:#2a2c30; }
+  #view3d canvas { display:block; }
+  #v3dmsg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#ddd; pointer-events:none; }
+  body.v3d svg#view { display:none; }
+  body.v3d #view3d { display:block; }
+  .only3d { display:none; }
+  body.v3d .only3d { display:inline-block; }
+  body.v3d .no3d { display:none; }
+
+  .viewbar { position:sticky; bottom:0; padding:8px 12px; background:var(--bg); border-radius:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .seg { display:inline-flex; border:1px solid #999; border-radius:8px; overflow:hidden; }
+  .seg button { margin:0; border:0; border-radius:0; padding:8px 16px; font-size:14px; background:#fff; }
+  .seg button + button { border-left:1px solid #999; }
+  .seg button.on { background:var(--acc); color:#fff; }
+  .viewbar select { width:auto; padding:6px; }
+  .viewbar > button { margin:0; padding:7px 10px; }
+  #warn { color:var(--warn); font-size:13px; }
+  #status { font-size:13px; color:#555; }
+  /* Mobile : visuel en haut (cadré automatiquement), réglages en dessous */
+  @media (max-width: 760px) {
+    body { flex-direction:column; height:100dvh; }
+    main { order:0; flex:none; height:58dvh; padding:8px; gap:6px; overflow:hidden; }
+    aside { order:1; width:auto; flex:1; min-height:0; border-right:0; border-top:1px solid var(--line); }
+    #zoomRow { display:none; }
+    .viewbar { padding:4px; gap:6px; }
+    .seg button { padding:7px 10px; font-size:13px; }
+    .viewbar > button { padding:6px 8px; }
+    .viewbar select { padding:4px; }
+    .long { display:none; }
+    .pal { grid-template-columns:repeat(4, 1fr); }
+    input, select { font-size:16px; } /* évite le zoom automatique d'iOS au focus */
+    #view3d { min-height:0; }
+  }
 </style>
 </head>
 <body>
 <aside>
+  <h1>Faces avant Eurorack</h1>
+  <input id="name" placeholder="Nom du module" maxlength="60">
+
   <details open id="secPanel"><summary>1 · Panneau</summary>
   <label>Format <select id="fmt">
     <option value="3u">3U (128,5 mm)</option>
@@ -44,36 +117,65 @@
     <option value="auto">auto</option><option value="1">1 (centré)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
   </select></label>
   <div class="info">Trous M3 : Ø 3,2 mm oblongs (+2 mm), à 3 mm des bords haut/bas et 7,5 mm du bord.</div>
+  <label>Police par défaut <span id="font"></span></label>
   </details>
 
   <details open><summary>2 · Composants</summary>
   <div class="pal" id="presets"></div>
-  <p class="info">Glisse une miniature sur le panneau (ou clic = au centre).</p>
+  <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder.</p>
   </details>
 
   <details open><summary>Élément sélectionné</summary>
   <div id="props" class="info">Clique sur un élément.</div>
   </details>
 
-  <details open><summary>Affichage</summary>
+  <details open><summary>Mes modules</summary>
+  <div class="row">
+    <button id="libSave">Enregistrer</button>
+    <button id="newMod">Nouveau</button>
+    <span id="dirty"></span>
+  </div>
+  <ul id="lib"></ul>
+  <div class="row">
+    <button id="expMod">Exporter ce module</button>
+    <button id="impMod">Importer…</button>
+    <button id="expLib">Exporter tout</button>
+  </div>
+  <p class="info">La bibliothèque vit dans ce navigateur. Exporte en fichier .json pour sauvegarder ou partager (un ou plusieurs modules par fichier).</p>
+  <input id="file" type="file" accept=".json,application/json" multiple hidden>
+  <input id="logofile" type="file" accept=".svg,image/svg+xml,image/png,image/jpeg" hidden>
+  </details>
+
+  <details open><summary>Export laser</summary>
+  <label>Textes en tracés <input id="topath" type="checkbox" checked></label>
+  <button id="exSvg">Exporter SVG</button>
+  <p class="info">SVG en mm, 1:1. Rouge = découpe, bleu = gravure.</p>
+  </details>
+
+  <details><summary>Affichage</summary>
   <label>Grille d'aimantation (mm) <input id="grid" type="number" step="0.01" value="1.27"></label>
   <label>Cotes (cm) <input id="cotes" type="checkbox" checked></label>
   <label>Zones des rails <input id="rails" type="checkbox" checked></label>
-  <label>Aperçu réaliste <input id="real" type="checkbox"></label>
-  <label>Couleur du panneau <select id="pcol"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option></select></label>
-  <label>Zoom <input id="zoom" type="range" min="2" max="10" step="0.5" value="5"></label>
+  <label id="zoomRow">Zoom <input id="zoom" type="range" min="2" max="10" step="0.5" value="5"></label>
   </details>
 
-  <details open><summary>Fichier</summary>
-  <button id="exSvg">Exporter SVG</button>
-  <button id="save">Enregistrer .json</button>
-  <button id="load">Ouvrir .json</button>
-  <input id="file" type="file" accept=".json" hidden>
-  <p class="info">SVG en mm, 1:1. Rouge = découpe, bleu = gravure.<br>Glisser à la souris : aimanté sur la grille, l'axe central et les autres éléments (Alt = libre).<br>Flèches = déplacer (Maj = ×10), Suppr = effacer, Ctrl+D = dupliquer.</p>
+  <details><summary>Raccourcis</summary>
+  <p class="info">Glisser : aimanté sur la grille, l'axe central et les autres éléments (Alt = libre).<br>
+  Flèches = déplacer (Maj = ×10) · Suppr = effacer · ⌘D = dupliquer · ⌘Z / ⇧⌘Z = annuler / rétablir · Échap = désélectionner.</p>
   </details>
 </aside>
 <svg width="0" height="0" style="position:absolute" id="defs"></svg>
-<main><svg id="view" xmlns="http://www.w3.org/2000/svg"></svg></main>
+<main>
+  <svg id="view" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="view3d"><div id="v3dmsg"></div></div>
+  <div class="viewbar">
+    <button id="undo" title="Annuler (⌘Z)">↶</button><button id="redo" title="Rétablir (⇧⌘Z)">↷</button>
+    <div class="seg"><button id="vPlan" class="on">Plan</button><button id="vReal">Aperçu<span class="long"> réaliste</span></button><button id="v3d">3D</button></div>
+    <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option></select>
+    <button id="fit3d" class="only3d" title="Recentrer">⟲</button><button id="png3d" class="only3d"><span class="long">Image </span>PNG</button>
+    <span id="warn" class="no3d"></span><span id="status"></span>
+  </div>
+</main>
 
 <script>
 const HP = 5.08;
@@ -81,28 +183,71 @@ const HP = 5.08;
 const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80,16:80.90,18:91.30,20:101.30,22:111.40,28:141.90,42:213.00};
 const HEIGHTS = {'3u':128.5, ij:39.65, pl:43.18};
 const RAIL = {'3u':10, ij:0, pl:0}; // ponytail: 10 mm de rail en haut/bas en 3U, valeur usuelle, pas de la norme
+const MOUNT = {d:3.2, slot:2, y:3, x:7.5}; // norme Doepfer : M3, 3 mm des bords haut/bas, 7,5 mm du bord gauche
 const PRESETS = [
   ['Jack 3,5 mm', 6, 'IN', 'jack'], ['Pot 9 mm', 7, 'LEVEL', 'pot9'], ['Pot 16 mm', 7.5, 'FREQ', 'pot16'],
   ['LED 3 mm', 3.1, '', 'led'], ['LED 5 mm', 5.1, '', 'led'], ['Inter. à levier', 6.2, '', 'toggle'],
-  ['Bouton poussoir', 7.2, '', 'button'], ['Encodeur', 7, '', 'encoder'], ['Trou libre', 4, '', 'hole']];
-// Rayon visible du composant monté (bouton, écrou…), pour placer l'étiquette au-dessus
-const REAL_R = { jack:()=>4, pot9:()=>5.5, pot16:()=>8.5, encoder:()=>6, toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2 };
+  ['Bouton poussoir', 7.2, '', 'button'], ['Gros bouton 15 mm', 15, '', 'bigbutton', '#f2c200'], ['Encodeur', 7, '', 'encoder'], ['Trou libre', 4, '', 'hole']];
+const KINDS = ['jack', 'pot9', 'pot16', 'led', 'toggle', 'button', 'bigbutton', 'encoder', 'hole'];
+const COLORED = ['led', 'button', 'bigbutton'];
+// Capuchons de potentiomètre au choix (aperçu seulement : le trou dépend du potentiomètre, pas du capuchon)
+const CAPS = { '':{name:"D'origine"}, alu9:{name:'Alu cranté Ø9', r:4.5}, jupe27:{name:'Jupe Ø27', r:13.5} };
+const KNOBS = ['pot9', 'pot16', 'encoder'];
+const capR = (it, def) => CAPS[it.cap]?.r ?? def;
+// Rayon visible du composant monté (bouton, écrou…) : étiquette au-dessus, cercle de sélection, chevauchements
+const REAL_R = { jack:()=>4, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:()=>9.5 };
+const footR = it => Math.max(it.d/2, REAL_R[it.kind]?.(it) ?? 0);
 const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'} };
 const REAL_DEFS = `<defs>
   <linearGradient id="alu" x1="0" y1="0" x2="1" y2="0.15"><stop offset="0" stop-color="#c9cccf"/><stop offset=".5" stop-color="#e6e8ea"/><stop offset="1" stop-color="#bfc2c6"/></linearGradient>
   <radialGradient id="metal" cx=".35" cy=".3"><stop offset="0" stop-color="#fafafa"/><stop offset=".6" stop-color="#b8bbbf"/><stop offset="1" stop-color="#7d8186"/></radialGradient>
   <radialGradient id="knob" cx=".4" cy=".3"><stop offset="0" stop-color="#555"/><stop offset=".7" stop-color="#1e1e1e"/><stop offset="1" stop-color="#0a0a0a"/></radialGradient>
   <radialGradient id="shine" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="bezel" cx=".4" cy=".3" r=".7"><stop offset="0" stop-color="#4a4a4a"/><stop offset=".55" stop-color="#151515"/><stop offset="1" stop-color="#050505"/></radialGradient>
+  <linearGradient id="capsheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
+  <linearGradient id="brushed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f9296"/><stop offset=".3" stop-color="#e9eaec"/><stop offset=".45" stop-color="#a4a7ab"/><stop offset=".62" stop-color="#f4f5f6"/><stop offset=".8" stop-color="#9c9fa3"/><stop offset="1" stop-color="#d5d7da"/></linearGradient>
   <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0.3" dy="0.5" stdDeviation="0.4" flood-opacity=".45"/></filter>
 </defs>`;
 
-let state = { fmt:'3u', hp:8, w:null, nholes:'auto', hd:3.2, hslot:2, hy:3, hx:7.5, items:[] };
-let sel = null;
+const FONTS = {
+  'inter': {family:'Inter', name:'Neutre (Inter)', bold:true},
+  'roboto-condensed': {family:'Roboto Condensed', name:'Condensée', bold:true},
+  'michroma': {family:'Michroma', name:'Michroma — façon Eurostile (Roland, ARP)', bold:false},
+  'audiowide': {family:'Audiowide', name:'Audiowide — années 80', bold:false},
+  'orbitron': {family:'Orbitron', name:'Orbitron — futuriste', bold:true},
+  'zen-dots': {family:'Zen Dots', name:'Zen Dots — rondeurs rétro', bold:false},
+  'syncopate': {family:'Syncopate', name:'Syncopate — capitales larges', bold:true},
+  'oxanium': {family:'Oxanium', name:'Oxanium — techno', bold:true},
+  'righteous': {family:'Righteous', name:'Righteous — années 70', bold:false},
+  'monoton': {family:'Monoton', name:'Monoton — néon à filets', bold:false},
+  'bungee': {family:'Bungee', name:'Bungee — enseigne', bold:false},
+  'major-mono-display': {family:'Major Mono Display', name:'Major Mono — géométrique', bold:false},
+  'share-tech-mono': {family:'Share Tech Mono', name:'Share Tech Mono — terminal', bold:false},
+  'pacifico': {family:'Pacifico', name:'Pacifico — script', bold:false}};
+
 const $ = id => document.getElementById(id);
 const svg = $('view');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const newState = () => ({ id:uid(), name:'', fmt:'3u', hp:8, w:null, nholes:'auto', font:'inter', items:[] });
+let state = newState();
+let sel = null;
+let view = 'plan'; // 'plan' | 'real' | '3d'
 const H = () => HEIGHTS[state.fmt];
 const W = () => state.w ?? (WIDTHS[state.hp] ?? +(state.hp*HP - 0.35).toFixed(2));
 const snap = v => { const g = +$('grid').value; return g > 0 ? +(Math.round(v/g)*g).toFixed(2) : +v.toFixed(2); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let msgTimer;
+const msg = text => { $('status').textContent = text; clearTimeout(msgTimer); msgTimer = setTimeout(() => $('status').textContent = '', 6000); };
+
+// Police réellement utilisée : celle de l'élément, sinon celle du panneau ; gras seulement si la police l'a
+const fontOf = it => FONTS[it.font] ? it.font : FONTS[state.font] ? state.font : 'inter';
+// Texte gravé d'un élément (texte libre ou étiquette de composant), mêmes coordonnées pour le SVG, le canvas 3D et les tracés
+function textOf(it) {
+  const f = fontOf(it);
+  if (it.type === 'text' && it.text) return {str:it.text, x:it.x, y:+(it.y + it.size*0.35).toFixed(3), size:it.size, font:f, weight: it.bold && FONTS[f].bold ? 700 : 400};
+  if (it.type === 'hole' && it.label) return {str:it.label, x:it.x, y:+(it.y - footR(it) - 1.5).toFixed(3), size:it.size || 2.5, font:f, weight:400};
+  return null;
+}
 
 function mountHoles() {
   // Trous par rail : 1 centré (< 10 HP), puis 2 aux bords, +1 tous les 7,5 cm (3 à 15 cm, 4 à 22,5 cm…)
@@ -111,30 +256,36 @@ function mountHoles() {
   const span = state.hp - 3; // Doepfer : 7,5 mm puis 7,5 + (HP−3)×5,08, entraxes au pas de 1 HP
   n = Math.min(n, span + 1);
   const xs = n <= 1 ? [+(w/2).toFixed(2)]
-    : Array.from({length:n}, (_, i) => +(state.hx + Math.round(i*span/(n-1))*HP).toFixed(2));
+    : Array.from({length:n}, (_, i) => +(MOUNT.x + Math.round(i*span/(n-1))*HP).toFixed(2));
   const out = [];
-  for (const x of xs) for (const y of [state.hy, h - state.hy]) out.push({x, y});
+  for (const x of xs) for (const y of [MOUNT.y, h - MOUNT.y]) out.push({x, y});
   return out;
 }
 
 function slotPath(x, y, d, L) { // trou oblong horizontal centré sur (x,y)
-  if (L <= 0) return `<circle cx="${x}" cy="${y}" r="${d/2}"/>`;
   const r = d/2, a = x - L/2, b = x + L/2;
   return `<path d="M${a} ${y-r} H${b} A${r} ${r} 0 0 1 ${b} ${y+r} H${a} A${r} ${r} 0 0 1 ${a} ${y-r} Z"/>`;
 }
 
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// ---------- Rendu SVG ----------
 
 // Rendu réaliste (écran seulement, jamais exporté). Cotes approximatives des composants courants.
 function realSvg(it, i) {
   const {x, y} = it, a = `data-i="${i}"`, col = it.color || '#e22';
   const circ = (r, f, extra = '') => `<circle ${a} cx="${x}" cy="${y}" r="${r}" fill="${f}" ${extra}/>`;
   const hex = r => `<polygon ${a} points="${[0,1,2,3,4,5].map(k => `${x + r*Math.cos(k*Math.PI/3 + Math.PI/6)},${y + r*Math.sin(k*Math.PI/3 + Math.PI/6)}`).join(' ')}" fill="url(#metal)" stroke="#666" stroke-width="0.1"/>`;
-  const knob = (r, lines) => circ(r, 'url(#knob)', 'filter="url(#shadow)"')
-    + (lines ? Array.from({length:24}, (_, k) => { const t = k*Math.PI/12; return `<line x1="${x+(r-0.6)*Math.cos(t)}" y1="${y+(r-0.6)*Math.sin(t)}" x2="${x+r*Math.cos(t)}" y2="${y+r*Math.sin(t)}" stroke="#444" stroke-width="0.25"/>`; }).join('') : '')
-    + `<line x1="${x}" y1="${y - r*0.25}" x2="${x}" y2="${y - r + 0.8}" stroke="#fff" stroke-width="0.5" stroke-linecap="round" pointer-events="none"/>`;
+  const knurl = r => Array.from({length:24}, (_, k) => { const t = k*Math.PI/12; return `<line x1="${x+(r-0.6)*Math.cos(t)}" y1="${y+(r-0.6)*Math.sin(t)}" x2="${x+r*Math.cos(t)}" y2="${y+r*Math.sin(t)}" stroke="#444" stroke-width="0.25"/>`; }).join('');
+  const mark = (r1, r2, w) => `<line x1="${x}" y1="${y - r1}" x2="${x}" y2="${y - r2}" stroke="#fff" stroke-width="${w}" stroke-linecap="round" pointer-events="none"/>`;
+  const knob = (r, lines) => circ(r, 'url(#knob)', 'filter="url(#shadow)"') + (lines ? knurl(r) : '') + mark(r*0.25, r - 0.8, 0.5);
+  const brushed = r => circ(r, 'url(#brushed)') + [0.35, 0.6, 0.85].map(f => `<circle cx="${x}" cy="${y}" r="${r*f}" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="0.12" pointer-events="none"/>`).join('');
   let s = '';
-  switch (it.kind) {
+  if (KNOBS.includes(it.kind) && it.cap === 'alu9') // cylindre noir cranté, dessus alu brossé, repère blanc (d'après photo)
+    s = circ(4.5, 'url(#knob)', 'filter="url(#shadow)"') + knurl(4.5) + brushed(3.5) + mark(2.2, 3.3, 0.35);
+  else if (KNOBS.includes(it.kind) && it.cap === 'jupe27') { // jupe noire ondulée Ø27, centre alu brossé (d'après photo)
+    const pts = scallop(13.5, 14, 168).map(([px, py]) => `${(x + px).toFixed(2)},${(y + py).toFixed(2)}`);
+    s = `<polygon ${a} points="${pts.join(' ')}" fill="url(#knob)" filter="url(#shadow)"/>` + circ(10.2, '#0d0d0d', 'stroke="#2a2a2a" stroke-width="0.3"')
+      + brushed(8.2) + mark(10.4, 12.2, 0.5);
+  } else switch (it.kind) {
     case 'jack': s = circ(4, 'url(#metal)', 'stroke="#666" stroke-width="0.1" filter="url(#shadow)"') + circ(2.6, '#8a8d91') + circ(1.8, '#111'); break;
     case 'pot9': s = knob(5.5, false); break;
     case 'pot16': s = knob(8.5, false) + circ(8.5, 'none', 'stroke="#000" stroke-width="0.3"'); break;
@@ -143,24 +294,44 @@ function realSvg(it, i) {
     case 'toggle': s = hex(4.3) + circ(2.4, 'url(#metal)', 'stroke="#555" stroke-width="0.1"')
       + `<ellipse ${a} cx="${x}" cy="${y - 3}" rx="1.3" ry="3.4" fill="url(#metal)" stroke="#555" stroke-width="0.1" filter="url(#shadow)"/>`; break;
     case 'button': s = circ(it.d/2 + 1.2, 'url(#metal)', 'filter="url(#shadow)"') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
+    case 'bigbutton': // bague noire brillante Ø19, capuchon plat Ø12,5 (d'après photo)
+      s = circ(9.5, 'url(#bezel)', 'filter="url(#shadow)"') + circ(6.6, '#0a0a0a') + circ(6.25, col) + circ(6.25, 'url(#capsheen)'); break;
     default: s = circ(it.d/2, '#111');
   }
-  if (i === sel) s += `<circle cx="${x}" cy="${y}" r="${Math.max(it.d/2, 4) + 1.5}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`;
+  if (i === sel) s += `<circle cx="${x}" cy="${y}" r="${footR(it) + 1.5}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`;
   return s;
+}
+// Contour ondulé d'une jupe de bouton (points relatifs au centre)
+const scallop = (R, lobes, steps) => Array.from({length:steps}, (_, k) => { const t = k/steps*2*Math.PI, r = R - 1.1*Math.sin(lobes*t/2)**2; return [r*Math.cos(t), r*Math.sin(t)]; });
+
+function textSvg(t, i, fill, extra = '') {
+  return `<text data-i="${i}" x="${t.x}" y="${t.y}" font-size="${t.size}" font-family="'${FONTS[t.font].family}', sans-serif" font-weight="${t.weight}" data-font="${t.font}" data-w="${t.weight}" fill="${fill}" stroke="none" text-anchor="middle"${extra}>${esc(t.str)}</text>`;
 }
 
 function itemSvg(it, i) {
   const c = i === sel ? ' class="sel"' : '';
   const cut = 'fill="none" stroke="#f00" stroke-width="0.1"';
-  const eng = `fill="${REAL ? PANEL[$('pcol').value].ink : '#00f'}" stroke="none" font-family="Helvetica, Arial, sans-serif" text-anchor="middle"`;
+  const ink = REAL ? PANEL[$('pcol').value].ink : '#00f';
+  const t = textOf(it);
   let s = '';
   if (it.type === 'hole') {
     s += REAL ? realSvg(it, i) : `<circle data-i="${i}" cx="${it.x}" cy="${it.y}" r="${it.d/2}" ${cut}${c}/>`;
-    if (it.label) s += `<text data-i="${i}" x="${it.x}" y="${it.y - Math.max(it.d/2, REAL_R[it.kind]?.(it) ?? 0) - 1.5}" font-size="${it.size||2.5}" ${eng}>${esc(it.label)}</text>`;
+    if (t) s += textSvg(t, i, ink);
   } else if (it.type === 'rect') {
     s += `<rect data-i="${i}" x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" rx="${it.r||0}" ${REAL ? `fill="#0b0d10" stroke="${i === sel ? '#d33' : '#333'}" stroke-width="0.3"` : cut + c}/>`;
   } else if (it.type === 'text') {
-    s += `<text data-i="${i}" x="${it.x}" y="${it.y}" font-size="${it.size}" font-weight="${it.bold?'bold':'normal'}" dominant-baseline="middle" ${eng}${c ? ' stroke="#d33" stroke-width="0.15"' : ''}>${esc(it.text)}</text>`;
+    if (t) s += textSvg(t, i, ink, c ? ' stroke="#d33" stroke-width="0.15"' : '');
+  } else if (it.type === 'logo') { // SVG gardé en vecteurs (gravure nette), PNG/JPEG en image
+    const h = it.w / it.ratio, x0 = it.x - it.w/2, y0 = it.y - h/2;
+    s += `<g data-i="${i}"><g${REAL ? ' filter="url(#engrave)"' : ''}>` + (it.svg
+      ? `<svg x="${x0}" y="${y0}" width="${it.w}" height="${h}" viewBox="${it.vb}" preserveAspectRatio="xMidYMid meet">${it.svg}</svg>`
+      : `<image x="${x0}" y="${y0}" width="${it.w}" height="${h}" href="${it.img}" preserveAspectRatio="xMidYMid meet"/>`) + '</g>';
+    if (sel === i) s += `<rect x="${x0}" y="${y0}" width="${it.w}" height="${h}" fill="transparent" stroke="#d33" stroke-width="0.2" stroke-dasharray="1 0.6"/>`;
+    else if (GUIDES) s += `<rect x="${x0}" y="${y0}" width="${it.w}" height="${h}" fill="transparent" stroke="none"/>`; // zone de prise en main, pas exportée
+    s += '</g>';
+    const hs = Math.max(1.6, 14 / zoom()); // poignées d'au moins 14 px, pour les doigts
+    if (sel === i && GUIDES) // poignées d'angle : 0 haut-gauche, 1 haut-droit, 2 bas-gauche, 3 bas-droit
+      s += [0,1,2,3].map(k => `<rect data-h="${k}" x="${(k & 1 ? x0 + it.w : x0) - hs/2}" y="${(k & 2 ? y0 + h : y0) - hs/2}" width="${hs}" height="${hs}" fill="#fff" stroke="#d33" stroke-width="0.25" style="cursor:${k === 0 || k === 3 ? 'nwse' : 'nesw'}-resize"/>`).join('');
   }
   return s;
 }
@@ -172,7 +343,6 @@ function dimsSvg() {
   const w = W(), h = H(), st = 'stroke="#555" stroke-width="0.15"', tx = 'font-size="2.6" fill="#333" font-family="Helvetica, Arial, sans-serif" text-anchor="middle"';
   const arrow = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${st} marker-start="url(#arr)" marker-end="url(#arr)"/>`;
   let s = `<defs><marker id="arr" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L6 3L0 6z" fill="#555"/></marker></defs>`;
-  // largeur (au-dessus) et hauteur (à gauche)
   s += `<line x1="0" y1="-1" x2="0" y2="-9" ${st}/><line x1="${w}" y1="-1" x2="${w}" y2="-9" ${st}/>` + arrow(0, -7, w, -7)
      + `<text x="${w/2}" y="-8.5" ${tx}>${cm(w)}</text>`;
   s += `<line x1="-1" y1="0" x2="-9" y2="0" ${st}/><line x1="-1" y1="${h}" x2="-9" y2="${h}" ${st}/>` + arrow(-7, 0, -7, h)
@@ -186,71 +356,504 @@ function dimsSvg() {
   return s;
 }
 
-let REAL = false; // vrai pendant le dessin à l'écran quand l'aperçu réaliste est coché
+// Composants qui se chevauchent, débordent du panneau ou mordent sur les rails / vis
+function issues() {
+  const w = W(), h = H(), rail = RAIL[state.fmt], out = new Map();
+  const holes = state.items.map((it, i) => [it, i]).filter(([it]) => it.type === 'hole');
+  for (const [a, i] of holes) {
+    const ra = footR(a);
+    if (a.x - ra < 0 || a.x + ra > w || a.y - ra < 0 || a.y + ra > h) out.set(i, 'déborde du panneau');
+    else if (rail && (a.y - a.d/2 < rail || a.y + a.d/2 > h - rail)) out.set(i, 'trou dans la zone des rails');
+    for (const [b, j] of holes) if (j > i && Math.hypot(a.x - b.x, a.y - b.y) < ra + footR(b) - 0.05) { out.set(i, 'chevauche un autre composant'); out.set(j, 'chevauche un autre composant'); }
+  }
+  return out;
+}
+function issuesSvg() {
+  const list = issues();
+  $('warn').textContent = list.size ? `⚠ ${list.size} composant${list.size > 1 ? 's' : ''} à vérifier` : '';
+  $('warn').title = [...new Set(list.values())].join(', ');
+  return [...list.keys()].map(i => { const it = state.items[i];
+    return `<circle cx="${it.x}" cy="${it.y}" r="${footR(it) + 0.8}" fill="none" stroke="#e8870e" stroke-width="0.35" stroke-dasharray="0.6 0.6" pointer-events="none"/>`; }).join('');
+}
+
+// Échelle écran en px/mm : curseur sur ordinateur, cadrage automatique sur mobile
+const mobile = matchMedia('(max-width: 760px)');
+function zoom() {
+  if (!mobile.matches) return +$('zoom').value;
+  const main = document.querySelector('main'), bar = document.querySelector('.viewbar');
+  return Math.max(1, Math.min((main.clientWidth - 16) / (W() + 18), (main.clientHeight - bar.offsetHeight - 22) / (H() + 18)));
+}
+addEventListener('resize', () => { clearTimeout(zoom.t); zoom.t = setTimeout(render, 150); });
+
+let REAL = false, GUIDES = false; // pendant le dessin : aperçu réaliste / repères d'écran (jamais dans l'export)
 function panelSvg(guides) {
   const w = W(), h = H();
-  REAL = guides && $('real').checked;
+  REAL = guides && view === 'real'; GUIDES = guides;
   if (REAL) {
-    let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${PANEL[$('pcol').value].fill}" stroke="#888" stroke-width="0.15"/>`;
+    let s = `<defs><filter id="engrave" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.2126 -0.7152 -0.0722 0 1" result="dark"/>
+      <feComposite in="dark" in2="SourceAlpha" operator="in" result="m"/>
+      <feComponentTransfer in="m" result="mask"><feFuncA type="discrete" tableValues="0 1"/></feComponentTransfer>
+      <feFlood flood-color="${PANEL[$('pcol').value].ink}"/><feComposite in2="mask" operator="in"/>
+    </filter></defs>`;
+    s += `<rect x="0" y="0" width="${w}" height="${h}" fill="${PANEL[$('pcol').value].fill}" stroke="#888" stroke-width="0.15"/>`;
     s += mountHoles().map(p => `<circle cx="${p.x}" cy="${p.y}" r="2.8" fill="url(#metal)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>`
       + `<path d="M${p.x-1.4} ${p.y}H${p.x+1.4}M${p.x} ${p.y-1.4}V${p.y+1.4}" stroke="#555" stroke-width="0.45"/>`).join('');
-    return s + state.items.map(itemSvg).join('') + dimsSvg();
+    return s + state.items.map(itemSvg).join('') + issuesSvg() + dimsSvg();
   }
   let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${guides ? '#e8e8e8' : 'none'}" stroke="#f00" stroke-width="0.1"/>`;
-  if (guides && $('rails').checked && RAIL[state.fmt]) {
-    const r = RAIL[state.fmt];
-    s += `<rect x="0" y="0" width="${w}" height="${r}" fill="#0000000d"/><rect x="0" y="${h-r}" width="${w}" height="${r}" fill="#0000000d"/>`;
-    s += `<line x1="0" x2="${w}" y1="${r}" y2="${r}" stroke="#999" stroke-width="0.15" stroke-dasharray="1 1"/>`;
-    s += `<line x1="0" x2="${w}" y1="${h-r}" y2="${h-r}" stroke="#999" stroke-width="0.15" stroke-dasharray="1 1"/>`;
-  }
   if (guides) {
+    const r = RAIL[state.fmt];
+    if ($('rails').checked && r) {
+      s += `<rect x="0" y="0" width="${w}" height="${r}" fill="#0000000d"/><rect x="0" y="${h-r}" width="${w}" height="${r}" fill="#0000000d"/>`;
+      s += `<path d="M0 ${r}H${w}M0 ${h-r}H${w}" stroke="#999" stroke-width="0.15" stroke-dasharray="1 1"/>`;
+    }
     const g = +$('grid').value;
-    if (g > 0 && g * +$('zoom').value >= 4)
+    if (g > 0 && g * zoom() >= 4)
       s += `<defs><pattern id="gp" width="${g}" height="${g}" patternUnits="userSpaceOnUse"><path d="M${g} 0V${g}H0" fill="none" stroke="#0000001a" stroke-width="0.05"/></pattern></defs><rect width="${w}" height="${h}" fill="url(#gp)"/>`;
-    for (let x = HP; x < w; x += HP) s += `<line x1="${x}" x2="${x}" y1="0" y2="${h}" stroke="#0002" stroke-width="0.1"/>`;
+    let hp = '';
+    for (let x = HP; x < w; x += HP) hp += `M${x} 0V${h}`;
+    s += `<path d="${hp}" stroke="#0002" stroke-width="0.1"/>`;
     s += `<line x1="${w/2}" x2="${w/2}" y1="0" y2="${h}" stroke="#08f4" stroke-width="0.1" stroke-dasharray="0.5 0.5"/>`;
   }
-  s += `<g fill="none" stroke="#f00" stroke-width="0.1">` + mountHoles().map(p => slotPath(p.x, p.y, state.hd, state.hslot)).join('') + `</g>`;
+  s += `<g fill="none" stroke="#f00" stroke-width="0.1">` + mountHoles().map(p => slotPath(p.x, p.y, MOUNT.d, MOUNT.slot)).join('') + `</g>`;
   s += state.items.map(itemSvg).join('');
-  return guides ? s + dimsSvg() : s;
+  return guides ? s + issuesSvg() + dimsSvg() : s;
+}
+
+// Dessin de l'écran (sans reconstruire la barre latérale) ; en 3D, reconstruction différée de la scène
+function paint() {
+  if (view === '3d') { clearTimeout(paint.t); paint.t = setTimeout(build3d, 150); return; }
+  let s = panelSvg(true);
+  if (drag) {
+    const w = W(), h = H(), st = 'stroke="#f0a" stroke-width="0.15"';
+    if (guideX != null) s += `<line x1="${guideX}" x2="${guideX}" y1="0" y2="${h}" ${st}/>`;
+    if (guideY != null) s += `<line x1="0" x2="${w}" y1="${guideY}" y2="${guideY}" ${st}/>`;
+  }
+  svg.innerHTML = s;
 }
 
 function render() {
-  const w = W(), h = H(), z = +$('zoom').value;
-  const m = 14; // marge pour les cotes
+  const w = W(), h = H(), z = zoom(), m = 14; // m : marge pour les cotes
   svg.setAttribute('viewBox', `${-m} ${-m} ${w+m+4} ${h+m+4}`);
   svg.setAttribute('width', (w+m+4)*z);
   svg.setAttribute('height', (h+m+4)*z);
-  svg.innerHTML = panelSvg(true);
-  $('w').value = W();
+  paint();
+  if (document.activeElement !== $('w')) $('w').value = W();
   document.querySelectorAll('#hpchips button').forEach(b => b.classList.toggle('on', +b.dataset.hp === state.hp));
   $('winfo').textContent = `Théorique : ${(state.hp*HP).toFixed(2)} mm (${(state.hp*0.2).toFixed(1)}") · hauteur ${h} mm (${(h/25.4).toFixed(2)}")` + (WIDTHS[state.hp] || state.w ? '' : ' · largeur estimée (hors table)');
   renderProps();
+  commit();
 }
+
+// ---------- Propriétés de l'élément sélectionné ----------
 
 function renderProps() {
   const it = state.items[sel], p = $('props');
   if (!it) { p.innerHTML = 'Clique sur un élément.'; return; }
-  const fields = { hole:[['x','X'],['y','Y'],['d','Ø'],['label','Étiquette','text'],['size','Taille étiquette'],
-                         ...(['led','button'].includes(it.kind) ? [['color','Couleur','color']] : [])],
+  const fields = { hole:[['x','X'],['y','Y'],['d','Ø'],['label','Étiquette','text'],['font','Police','font'],['size','Taille étiquette'],
+                         ...(COLORED.includes(it.kind) ? [['color','Couleur','color']] : []),
+                         ...(KNOBS.includes(it.kind) ? [['cap','Capuchon','cap']] : [])],
                    rect:[['x','X centre'],['y','Y centre'],['w','Largeur'],['h','Hauteur'],['r','Rayon coins']],
-                   text:[['x','X'],['y','Y'],['text','Texte','text'],['size','Taille'],['bold','Gras','checkbox']] }[it.type];
-  p.innerHTML = fields.map(([k, l, t]) => `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`).join('')
-    + `<button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button>`;
-  p.querySelectorAll('input').forEach(inp => inp.oninput = () => {
-    const k = inp.dataset.k;
-    it[k] = inp.type === 'checkbox' ? inp.checked : inp.type === 'number' ? +inp.value : inp.value;
-    svg.innerHTML = panelSvg(true);
+                   text:[['x','X'],['y','Y'],['text','Texte','text'],['font','Police','font'],['size','Taille'],['bold','Gras','checkbox']],
+                   logo:[['x','X centre'],['y','Y centre'],['w','Largeur (mm)']] }[it.type];
+  p.innerHTML = fields.map(([k, l, t]) => t === 'cap'
+    ? `<div>${l}</div><div class="caps">${Object.entries(CAPS).map(([id, c]) => `<button type="button" data-cap="${id}" class="${(it.cap || '') === id ? 'on' : ''}"><svg viewBox="-14 -14 28 28">${realSvg({...it, cap:id, x:0, y:0}, -1)}</svg>${c.name}</button>`).join('')}</div>`
+    : t === 'font'
+    ? `<label>${l} <span data-fp="${k}"></span></label>`
+    : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`).join('')
+    + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button></div>`;
+  p.querySelectorAll('input').forEach(inp => {
+    inp.oninput = () => {
+      const k = inp.dataset.k;
+      it[k] = inp.type === 'checkbox' ? inp.checked : inp.type === 'number' ? +inp.value : inp.value;
+      paint();
+    };
+    inp.onchange = commit; // une entrée d'historique par modification, pas par frappe
   });
+  p.querySelectorAll('[data-cap]').forEach(b => b.onclick = () => { it.cap = b.dataset.cap; render(); });
+  p.querySelectorAll('[data-fp]').forEach(el => el.replaceWith(fontPicker(it.font || '', id => { it.font = id; paint(); commit(); }, true, it.text || it.label)));
   $('del').onclick = del; $('dup').onclick = dup;
   $('cx').onclick = () => { it.x = +(W()/2).toFixed(2); render(); };
 }
+
+// Sélecteur de police maison : un <select> natif n'affiche pas les options dans leur police sur macOS
+function fontPicker(cur, onPick, withDefault, sample) {
+  const d = document.createElement('details'); d.className = 'fp';
+  const ff = id => FONTS[id] ? `font-family:'${FONTS[id].family}'` : '';
+  const title = id => FONTS[id] ? FONTS[id].name.split(' — ')[0] : 'Par défaut';
+  const txt = esc(sample || 'VCO · CUTOFF · 1V/OCT');
+  d.innerHTML = `<summary style="${ff(cur)}">${title(cur)}</summary><div class="list">`
+    + (withDefault ? [''] : []).concat(Object.keys(FONTS)).map(id => {
+        const [name, desc] = FONTS[id] ? FONTS[id].name.split(' — ') : ['Par défaut', 'police du panneau'];
+        return `<button type="button" class="opt${id === cur ? ' on' : ''}" data-id="${id}" style="${ff(id || fontOf({}))}"><b>${name} <small>${desc || ''}</small></b><i>${txt}</i></button>`;
+      }).join('') + '</div>';
+  d.addEventListener('toggle', () => { // placer la liste sous (ou au-dessus de) la case, dans la fenêtre
+    if (!d.open) return;
+    const r = d.querySelector('summary').getBoundingClientRect(), L = d.querySelector('.list');
+    L.style.left = Math.max(8, Math.min(r.left, innerWidth - 298)) + 'px';
+    const below = innerHeight - r.bottom - 12, above = r.top - 12;
+    if (below >= 260 || below >= above) Object.assign(L.style, {top: r.bottom + 4 + 'px', bottom:'auto', maxHeight: below + 'px'});
+    else Object.assign(L.style, {top:'auto', bottom: innerHeight - r.top + 4 + 'px', maxHeight: above + 'px'});
+    L.querySelector('.on')?.scrollIntoView({block:'nearest'});
+  });
+  d.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const id = b.dataset.id;
+    d.open = false; d.querySelector('summary').textContent = title(id);
+    d.querySelector('summary').style.cssText = ff(id);
+    d.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o === b));
+    onPick(id);
+  });
+  return d;
+}
+const closePickers = e => document.querySelectorAll('details.fp[open]').forEach(d => e?.target instanceof Node && d.contains(e.target) || (d.open = false));
+document.addEventListener('click', closePickers);
+document.querySelector('aside').addEventListener('scroll', () => closePickers(), {passive:true});
+addEventListener('resize', () => closePickers());
 
 function add(it) { state.items.push(it); sel = state.items.length - 1; render(); }
 function del() { if (sel == null) return; state.items.splice(sel, 1); sel = null; render(); }
 function dup() { if (sel == null) return; add({...state.items[sel], x: state.items[sel].x + 5}); }
 
+// ---------- Historique (annuler / rétablir) et sauvegarde automatique ----------
+
+// ponytail: un instantané JSON complet par modification (logos compris), 60 max ; stocker les logos à part si ça pèse
+let past = [], future = [], lastSnap = null;
+function commit() {
+  const j = JSON.stringify(state);
+  if (j === lastSnap) return;
+  if (lastSnap != null) { past.push(lastSnap); if (past.length > 60) past.shift(); future = []; }
+  lastSnap = j;
+  try { localStorage.setItem('eurorack.current', j); } catch { msg('Sauvegarde automatique impossible (stockage plein ?)'); }
+  syncHistory(); renderLib();
+}
+function restore(j) { state = JSON.parse(j); lastSnap = j; sel = null; syncInputs(); render(); syncHistory(); renderLib(); }
+function undo() { if (past.length) { future.push(lastSnap); restore(past.pop()); } }
+function redo() { if (future.length) { past.push(lastSnap); restore(future.pop()); } }
+function syncHistory() { $('undo').disabled = !past.length; $('redo').disabled = !future.length; }
+$('undo').onclick = undo; $('redo').onclick = redo;
+
+// ---------- Lecture sûre d'un module (fichier d'un ami, stockage local) ----------
+
+const num = (v, d, lo = -1e4, hi = 1e4) => Number.isFinite(+v) ? Math.min(hi, Math.max(lo, +v)) : d;
+const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+function cleanSvg(doc) {
+  doc.querySelectorAll('script, foreignObject, iframe, object, embed').forEach(n => n.remove());
+  doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => {
+    if (/^on/i.test(a.name) || /^\s*(javascript|data:text)/i.test(a.value)) n.removeAttribute(a.name);
+  }));
+}
+function normItem(it) {
+  if (!it || typeof it !== 'object') return null;
+  const o = {type: it.type, x: num(it.x, 0), y: num(it.y, 0)};
+  const font = FONTS[it.font] ? it.font : '';
+  switch (it.type) {
+    case 'hole':
+      Object.assign(o, {kind: KINDS.includes(it.kind) ? it.kind : 'hole', d: num(it.d, 4, 0.5, 60), label: str(it.label, 40), size: num(it.size, 2.5, 0.5, 40), font});
+      if (COLORED.includes(o.kind)) o.color = /^#[0-9a-f]{3,8}$/i.test(it.color) ? it.color : '#e22222';
+      if (KNOBS.includes(o.kind) && CAPS[it.cap]) o.cap = it.cap;
+      return o;
+    case 'text': return Object.assign(o, {text: str(it.text, 80), size: num(it.size, 4, 0.5, 80), bold: !!it.bold, font});
+    case 'rect': return Object.assign(o, {w: num(it.w, 10, 0.5, 500), h: num(it.h, 6, 0.5, 500), r: num(it.r, 0, 0, 100)});
+    case 'logo': {
+      Object.assign(o, {w: num(it.w, 20, 1, 500), ratio: num(it.ratio, 1, 0.01, 100)});
+      if (typeof it.svg === 'string') {
+        const doc = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${it.svg}</svg>`, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) return null;
+        cleanSvg(doc);
+        o.svg = doc.documentElement.innerHTML;
+        o.vb = /^[\d.\s,eE+-]+$/.test(it.vb) ? it.vb : '0 0 100 100';
+      } else if (/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(it.img)) o.img = it.img;
+      else return null;
+      return o;
+    }
+  }
+  return null;
+}
+function normalize(raw) {
+  const s = newState();
+  if (!raw || typeof raw !== 'object') return s;
+  if (typeof raw.id === 'string' && raw.id) s.id = raw.id.slice(0, 40);
+  s.name = str(raw.name, 60);
+  if (HEIGHTS[raw.fmt]) s.fmt = raw.fmt;
+  s.hp = Math.round(num(raw.hp, 8, 1, 104));
+  s.w = raw.w == null ? null : num(raw.w, null, 1, 600);
+  s.nholes = ['auto', '1', '2', '3', '4'].includes(String(raw.nholes)) ? String(raw.nholes) : 'auto';
+  if (FONTS[raw.font]) s.font = raw.font;
+  s.items = (Array.isArray(raw.items) ? raw.items : []).map(normItem).filter(Boolean);
+  return s;
+}
+
+// ---------- Bibliothèque de modules (navigateur) et fichiers ----------
+
+const LIB = 'eurorack.library';
+const readLib = () => { try { return JSON.parse(localStorage.getItem(LIB)) || {}; } catch { return {}; } };
+function writeLib(lib) {
+  try { localStorage.setItem(LIB, JSON.stringify(lib)); return true; }
+  catch { msg('Bibliothèque pleine (logos trop lourds ?) : exporte tes modules en fichier.'); return false; }
+}
+function saveToLib(s = state) { const lib = readLib(); lib[s.id] = {...s, savedAt: Date.now()}; return writeLib(lib); }
+const fmtName = s => `${s.hp} HP${s.fmt === '3u' ? '' : ' · 1U'}`;
+function renderLib() {
+  const lib = readLib(), mods = Object.values(lib).sort((a, b) => b.savedAt - a.savedAt), saved = lib[state.id];
+  const canon = s => JSON.stringify(normalize(s)); // indépendant de l'ordre des clés
+  $('dirty').textContent = !saved ? (state.items.length ? '● pas encore enregistré' : '') : canon(saved) !== canon(state) ? '● modifié' : '';
+  $('lib').innerHTML = mods.length ? mods.map(m => `<li class="${m.id === state.id ? 'cur' : ''}" data-id="${esc(m.id)}">
+      <span title="${esc(m.name || 'Sans nom')}">${esc(m.name || 'Sans nom')} <small>${fmtName(m)} · ${new Date(m.savedAt).toLocaleDateString('fr-FR')}</small></span>
+      <button data-act="open" title="Ouvrir">Ouvrir</button><button data-act="exp" title="Exporter en fichier">⤓</button><button data-act="del" title="Supprimer de la bibliothèque">✕</button></li>`).join('')
+    : '<li class="info">Aucun module enregistré.</li>';
+}
+$('lib').onclick = e => {
+  const b = e.target.closest('button'), id = b?.closest('li')?.dataset.id;
+  if (!b || !id) return;
+  const lib = readLib(), m = lib[id];
+  if (!m) return;
+  if (b.dataset.act === 'open') { state = normalize(m); sel = null; syncInputs(); render(); msg(`« ${m.name || 'Sans nom'} » ouvert`); }
+  else if (b.dataset.act === 'exp') exportModules([normalize(m)], fileBase(m));
+  else if (b.dataset.act === 'del') {
+    if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Sûr ?'; setTimeout(() => { delete b.dataset.armed; b.textContent = '✕'; }, 3000); return; }
+    delete lib[id]; writeLib(lib); renderLib();
+  }
+};
+$('libSave').onclick = () => { if (saveToLib()) { renderLib(); msg(`« ${state.name || 'Sans nom'} » enregistré dans la bibliothèque`); } };
+$('newMod').onclick = () => { state = newState(); sel = null; syncInputs(); $('secPanel').open = true; render(); msg('Nouveau module (⌘Z pour revenir au précédent)'); };
+
+function download(name, data, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], {type})); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const slug = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
+const fileBase = (s = state) => slug(s.name || '') || `eurorack_${s.fmt}_${s.hp}HP`;
+const exportModules = (modules, base) => download(base + '.json', JSON.stringify({format:'eurorack-panel', version:1, modules}), 'application/json');
+$('expMod').onclick = () => exportModules([state], fileBase());
+$('expLib').onclick = () => { const mods = Object.values(readLib()).map(normalize); mods.length ? exportModules(mods, 'bibliotheque_eurorack') : msg('Bibliothèque vide'); };
+$('impMod').onclick = () => $('file').click();
+$('file').onchange = async () => {
+  let mods = [];
+  for (const f of $('file').files) {
+    try {
+      const data = JSON.parse(await f.text());
+      mods.push(...(data?.format === 'eurorack-panel' && Array.isArray(data.modules) ? data.modules : [data]).map(normalize)); // ancien format = un état brut
+    } catch (err) { msg(`${f.name} illisible : ${err.message}`); }
+  }
+  $('file').value = '';
+  if (!mods.length) return;
+  mods.forEach(m => saveToLib(m));
+  if (mods.length === 1) { state = mods[0]; sel = null; syncInputs(); render(); }
+  renderLib();
+  msg(mods.length === 1 ? `« ${mods[0].name || 'Sans nom'} » importé` : `${mods.length} modules importés dans la bibliothèque`);
+};
+
+function syncInputs() {
+  for (const k of ['fmt', 'hp', 'nholes', 'name']) $(k).value = state[k];
+  mountFontPicker();
+}
+
+// ---------- Export laser ----------
+
+// Textes → tracés (opentype.js + fichiers de police fontsource) : LightBurn/Illustrator n'ont pas besoin des polices
+const loadOpentype = () => window.opentype ? Promise.resolve() : new Promise((ok, ko) => {
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js';
+  s.onload = ok; s.onerror = () => ko(new Error('opentype.js injoignable')); document.head.append(s);
+});
+const fontCache = {};
+const loadFont = (id, w) => fontCache[id + w] ??= fetch(`https://cdn.jsdelivr.net/fontsource/fonts/${id}@latest/latin-${w}-normal.woff`)
+  .then(r => { if (!r.ok) throw new Error('police ' + id + ' introuvable'); return r.arrayBuffer(); })
+  .then(buf => opentype.parse(buf));
+async function textsToPaths(markup) {
+  await loadOpentype();
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  for (const t of [...doc.querySelectorAll('text[data-font]')]) {
+    const font = await loadFont(t.dataset.font, t.dataset.w), size = +t.getAttribute('font-size');
+    const s = t.textContent, x = +t.getAttribute('x'), y = +t.getAttribute('y');
+    const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', font.getPath(s, x - font.getAdvanceWidth(s, size)/2, y, size).toPathData(3));
+    path.setAttribute('fill', t.getAttribute('fill'));
+    t.replaceWith(path);
+  }
+  return new XMLSerializer().serializeToString(doc.documentElement);
+}
+$('exSvg').onclick = async () => {
+  const w = W(), h = H(), keepSel = sel; sel = null;
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">${panelSvg(false)}</svg>`;
+  sel = keepSel;
+  if ($('topath').checked) {
+    try { out = await textsToPaths(out); }
+    catch (err) { msg('Textes laissés en texte (' + err.message + ')'); }
+  }
+  download(fileBase() + '.svg', '<?xml version="1.0" encoding="UTF-8"?>\n' + out, 'image/svg+xml');
+};
+
+// ---------- Vue 3D (three.js, chargé à la première ouverture) ----------
+
+let V3 = null;
+async function init3d() {
+  const [T, {OrbitControls}, {RoomEnvironment}] = await Promise.all([
+    import('three'), import('three/addons/controls/OrbitControls.js'), import('three/addons/environments/RoomEnvironment.js')]);
+  const box = $('view3d');
+  const renderer = new T.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.8;
+  box.prepend(renderer.domElement);
+  const scene = new T.Scene();
+  scene.background = new T.Color('#2a2c30');
+  scene.environment = new T.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.6;
+  const camera = new T.PerspectiveCamera(30, 1, 1, 5000);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  const sun = new T.DirectionalLight('#fff', 1.6);
+  sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+  scene.add(sun, sun.target);
+  const draw = () => renderer.render(scene, camera); // rendu à la demande : pas de boucle permanente
+  controls.addEventListener('change', draw);
+  new ResizeObserver(() => {
+    const {clientWidth: w, clientHeight: h} = box;
+    if (!w || !h) return;
+    renderer.setSize(w, h); camera.aspect = w/h; camera.updateProjectionMatrix();
+    if (V3 && !V3.sized && V3.group) { V3.sized = true; fit3d(); } else draw(); // premier cadrage avec les vraies proportions
+  }).observe(box);
+  V3 = {T, renderer, scene, camera, controls, sun, draw, group: null, size: ''};
+}
+function fit3d() {
+  const {camera, controls, draw} = V3, w = W(), h = H(), t = Math.tan(camera.fov * Math.PI / 360);
+  const d = Math.max(h * 1.3 / 2 / t, w * 1.3 / 2 / t / camera.aspect);
+  camera.position.set(d*0.3, d*0.22, d*0.93); // un peu au-dessus, comme devant un rack
+  controls.target.set(0, 0, 0); controls.update(); draw();
+}
+const hexRgb = hx => { const h = hx.length === 4 ? hx.replace(/\w/g, c => c + c) : hx; return [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16)); };
+function logoImage(it, lw, lh) {
+  const im = new Image();
+  im.src = it.img || URL.createObjectURL(new Blob([`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${it.vb}" width="${lw}" height="${lh}" preserveAspectRatio="xMidYMid meet">${it.svg}</svg>`], {type:'image/svg+xml'}));
+  return im.decode().then(() => im, () => null);
+}
+// Calque de gravure (textes + logos seuillés) dessiné dans un canvas, plaqué sur la face avant
+async function engraveCanvas(ink) {
+  const S = 10, w = W(), h = H(), cv = document.createElement('canvas');
+  cv.width = Math.round(w*S); cv.height = Math.round(h*S);
+  const ctx = cv.getContext('2d'), [r, g, b] = hexRgb(ink);
+  ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  for (const it of state.items) {
+    const t = textOf(it);
+    if (t) {
+      ctx.font = `${t.weight} ${t.size*S}px '${FONTS[t.font].family}', sans-serif`;
+      await document.fonts.load(ctx.font, t.str).catch(() => {});
+      ctx.fillText(t.str, t.x*S, t.y*S);
+    } else if (it.type === 'logo') {
+      const lw = Math.max(1, Math.round(it.w*S)), lh = Math.max(1, Math.round(it.w/it.ratio*S)), im = await logoImage(it, lw, lh);
+      if (!im) continue;
+      const tmp = document.createElement('canvas'); tmp.width = lw; tmp.height = lh;
+      const c2 = tmp.getContext('2d'); c2.drawImage(im, 0, 0, lw, lh);
+      const px = c2.getImageData(0, 0, lw, lh), d = px.data;
+      for (let k = 0; k < d.length; k += 4) { // même seuil que l'aperçu : sombre (< 50 %) = gravé
+        const on = d[k+3] > 127 && (0.2126*d[k] + 0.7152*d[k+1] + 0.0722*d[k+2]) < 127.5;
+        d[k] = r; d[k+1] = g; d[k+2] = b; d[k+3] = on ? 255 : 0;
+      }
+      c2.putImageData(px, 0, 0);
+      ctx.drawImage(tmp, (it.x - it.w/2)*S, (it.y - it.w/it.ratio/2)*S);
+    }
+  }
+  return cv;
+}
+let building3d = false;
+async function build3d() {
+  if (building3d) { clearTimeout(paint.t); paint.t = setTimeout(build3d, 150); return; }
+  building3d = true;
+  try {
+    if (!V3) {
+      $('v3dmsg').textContent = 'Chargement de la 3D…';
+      try { await init3d(); } catch (err) { $('v3dmsg').textContent = '3D indisponible (connexion ?) : ' + err.message; return; }
+      $('v3dmsg').textContent = '';
+    }
+    const {T, scene, renderer, sun} = V3, w = W(), h = H(), pcol = $('pcol').value;
+    const g = new T.Group();
+    const P = (x, y) => [x - w/2, h/2 - y]; // mm écran (y vers le bas) → scène centrée (y vers le haut)
+    const M = (color, metalness, roughness, extra) => new T.MeshStandardMaterial({color, metalness, roughness, ...extra});
+    const mat = { metal: M('#c9ccd1', 1, 0.22), black: M('#161616', 0.1, 0.45), knurl: M('#161616', 0.1, 0.45, {flatShading:true}),
+                  gloss: M('#0b0b0b', 0.3, 0.12), alu: M('#dcdee2', 1, 0.28), white: M('#ffffff', 0, 0.5), dark: M('#050505', 0, 0.9) };
+    const mesh = (geo, m) => { const o = new T.Mesh(geo, m); o.castShadow = o.receiveShadow = true; return o; };
+    const cyl = (r, hh, m, z0 = 0, seg = 48, rTop = r) => { const o = mesh(new T.CylinderGeometry(rTop, r, hh, seg), m); o.rotation.x = Math.PI/2; o.position.z = z0 + hh/2; return o; };
+    const box = (bx, by, bz, m, x, y, z) => { const o = mesh(new T.BoxGeometry(bx, by, bz), m); o.position.set(x, y, z); return o; };
+
+    // Plaque : 2 mm d'aluminium percée (trous des composants, oblongs de fixation, découpes)
+    const shape = new T.Shape([new T.Vector2(-w/2, -h/2), new T.Vector2(w/2, -h/2), new T.Vector2(w/2, h/2), new T.Vector2(-w/2, h/2)]);
+    const inside = (x, y, r) => x - r > 0 && x + r < w && y - r > 0 && y + r < h;
+    for (const it of state.items) {
+      if (it.type === 'hole' && inside(it.x, it.y, it.d/2)) { const [cx, cy] = P(it.x, it.y), p = new T.Path(); p.absarc(cx, cy, it.d/2, 0, Math.PI*2, true); shape.holes.push(p); }
+      if (it.type === 'rect' && inside(it.x, it.y, Math.max(it.w, it.h)/2)) { const [cx, cy] = P(it.x, it.y);
+        shape.holes.push(new T.Path([new T.Vector2(cx - it.w/2, cy - it.h/2), new T.Vector2(cx - it.w/2, cy + it.h/2), new T.Vector2(cx + it.w/2, cy + it.h/2), new T.Vector2(cx + it.w/2, cy - it.h/2)])); }
+    }
+    for (const m of mountHoles()) {
+      const [cx, cy] = P(m.x, m.y), r = MOUNT.d/2, a = cx - MOUNT.slot/2, b = cx + MOUNT.slot/2, p = new T.Path();
+      p.moveTo(a, cy - r); p.lineTo(b, cy - r); p.absarc(b, cy, r, -Math.PI/2, Math.PI/2, false); p.lineTo(a, cy + r); p.absarc(a, cy, r, Math.PI/2, Math.PI*1.5, false);
+      shape.holes.push(p);
+    }
+    const plate = { alu: M('#aeb3b9', 0.9, 0.42), noir: M('#18181a', 0.4, 0.45), blanc: M('#efeee9', 0.05, 0.55) }[pcol];
+    const panel = mesh(new T.ExtrudeGeometry(shape, {depth:2, bevelEnabled:false, curveSegments:40}), plate);
+    panel.position.z = -2; g.add(panel);
+
+    // Gravure
+    const tex = new T.CanvasTexture(await engraveCanvas(PANEL[pcol].ink));
+    tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const eng = new T.Mesh(new T.PlaneGeometry(w, h), M('#fff', 0, 0.8, {map:tex, transparent:true, polygonOffset:true, polygonOffsetFactor:-2}));
+    eng.position.z = 0.01; eng.receiveShadow = true; g.add(eng);
+
+    // Vis de fixation
+    for (const m of mountHoles()) {
+      const [cx, cy] = P(m.x, m.y), s = new T.Group();
+      s.add(cyl(2.8, 1.1, mat.metal, 0, 32, 2.6), box(2.8, 0.5, 0.3, mat.dark, 0, 0, 1.05), box(0.5, 2.8, 0.3, mat.dark, 0, 0, 1.05));
+      s.position.set(cx, cy, 0); g.add(s);
+    }
+
+    // Composants (cotes des aperçus 2D ; hauteurs typiques)
+    for (const it of state.items) {
+      if (it.type !== 'hole') continue;
+      const [cx, cy] = P(it.x, it.y), c = new T.Group(), col = M(it.color || '#e22222', 0.05, 0.4);
+      const mark = (y0, len, z) => box(0.5, len, 0.12, mat.white, 0, y0 + len/2, z + 0.06);
+      if (KNOBS.includes(it.kind) && it.cap === 'alu9')
+        c.add(cyl(4.5, 11, mat.knurl, 0, 30), cyl(3.5, 0.3, mat.alu, 11), mark(2.2, 1.1, 11.3));
+      else if (KNOBS.includes(it.kind) && it.cap === 'jupe27') {
+        const skirt = mesh(new T.ExtrudeGeometry(new T.Shape(scallop(13.5, 14, 168).map(([x, y]) => new T.Vector2(x, y))), {depth:4.5, bevelEnabled:false}), mat.black);
+        c.add(skirt, cyl(10.2, 14, mat.black, 0, 64, 9.8), cyl(8.2, 0.3, mat.alu, 14), mark(10.4, 1.8, 4.5));
+      } else switch (it.kind) {
+        case 'jack': c.add(cyl(4, 1.6, mat.metal, 0, 40), cyl(3, 3.4, mat.metal), cyl(1.8, 0.1, mat.dark, 3.35)); break;
+        case 'pot9': c.add(cyl(5.5, 11, mat.black, 0, 64, 5.1), mark(1.4, 3.4, 11)); break;
+        case 'pot16': c.add(cyl(8.5, 14, mat.black, 0, 64, 7.9), mark(2.1, 5.6, 14)); break;
+        case 'encoder': c.add(cyl(6, 12, mat.knurl, 0, 28), mark(1.5, 3.7, 12)); break;
+        case 'led': { const lm = M(it.color, 0, 0.1, {emissive: it.color, emissiveIntensity: 0.35, transparent: true, opacity: 0.92});
+          const dome = mesh(new T.SphereGeometry(it.d/2, 32, 16, 0, Math.PI*2, 0, Math.PI/2), lm); dome.rotation.x = Math.PI/2; dome.position.z = 1.2;
+          c.add(cyl(it.d/2, 1.2, lm), dome); break; }
+        case 'toggle': { const lever = new T.Group(), stick = mesh(new T.CylinderGeometry(0.8, 1.25, 11, 24), mat.metal), tip = mesh(new T.SphereGeometry(1.2, 20, 12), mat.metal);
+          stick.position.y = 5.5; tip.position.y = 11; lever.add(stick, tip); lever.position.z = 6; lever.rotation.x = 70 * Math.PI / 180; // levier incliné vers le haut
+          c.add(cyl(4.3, 1.8, mat.metal, 0, 6), cyl(2.4, 6, mat.metal), lever); break; }
+        case 'button': c.add(cyl(it.d/2 + 1.2, 2, mat.metal), cyl(it.d/2, 4.5, col)); break;
+        case 'bigbutton': c.add(cyl(9.5, 2.6, mat.gloss, 0, 64, 9.1), cyl(6.6, 2.9, mat.black), cyl(6.25, 3.6, col)); break;
+      }
+      c.position.set(cx, cy, 0); g.add(c);
+    }
+
+    if (V3.group) { // libérer la scène précédente
+      scene.remove(V3.group);
+      V3.group.traverse(o => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose(); } });
+    }
+    V3.group = g; scene.add(g);
+    const s = Math.max(w, h) * 0.8;
+    sun.position.set(-0.5*w, 1.1*h, 2.2*h);
+    Object.assign(sun.shadow.camera, {left:-s, right:s, top:s, bottom:-s, near:1, far:6*h + 200});
+    sun.shadow.camera.updateProjectionMatrix();
+    if (V3.size !== `${w}x${h}`) { V3.size = `${w}x${h}`; fit3d(); } else V3.draw();
+  } finally { building3d = false; }
+}
+$('fit3d').onclick = () => V3 && fit3d();
+$('png3d').onclick = () => { if (!V3) return; V3.draw(); V3.renderer.domElement.toBlob(b => download(fileBase() + '_3d.png', b)); };
+
+// ---------- Palette, glisser-déposer, clavier ----------
+
 $('defs').innerHTML = REAL_DEFS;
+const mountFontPicker = () => $('font').replaceChildren(fontPicker(state.font, id => { state.font = id; render(); }, false));
+document.fonts.ready.then(() => view !== '3d' && paint()); // redessiner quand les polices web sont arrivées
 // Largeurs de module courantes (dont 26 HP, cf. 4ms SWN)
 [2,4,6,8,10,12,14,16,18,20,22,24,26,28,32,36,42].forEach(n => {
   const b = document.createElement('button'); b.textContent = n; b.dataset.hp = n;
@@ -258,7 +861,7 @@ $('defs').innerHTML = REAL_DEFS;
   $('hpchips').append(b);
 });
 const PALETTE = [
-  ...PRESETS.map(([name, d, label, kind]) => [name, () => ({type:'hole', kind, d, label, size:2.5, ...(kind === 'led' || kind === 'button' ? {color:'#e22222'} : {})})]),
+  ...PRESETS.map(([name, d, label, kind, color = '#e22222']) => [name, () => ({type:'hole', kind, d, label, size:2.5, ...(COLORED.includes(kind) ? {color} : {})})]),
   ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})],
   ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})]];
 function place(make, x, y) {
@@ -270,55 +873,97 @@ PALETTE.forEach(([name, make], k) => {
   t.className = 'tile'; t.draggable = true;
   const art = it.type === 'hole' ? realSvg(it, -1)
     : it.type === 'rect' ? '<rect x="-6" y="-4" width="12" height="8" fill="#0b0d10"/>'
-    : '<text x="0" y="1.5" font-size="7" font-weight="bold" text-anchor="middle" dominant-baseline="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
+    : '<text x="0" y="2.5" font-size="7" font-weight="bold" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
   t.innerHTML = `<svg viewBox="-10 -10 20 20">${art}</svg>${name}`;
   t.onclick = () => place(make, W()/2, H()/2);
   t.ondragstart = e => e.dataTransfer.setData('text/plain', k);
   $('presets').append(t);
 });
+{ const t = document.createElement('div');
+  t.className = 'tile';
+  t.innerHTML = '<svg viewBox="-10 -10 20 20"><path d="M-6 5L-1 -2L2 2L4 0L7 5Z" fill="#888"/><circle cx="3" cy="-4" r="2" fill="#bbb"/></svg>Logo';
+  t.onclick = () => $('logofile').click();
+  $('presets').append(t); }
+
+// Logo : SVG (nettoyé) ou image raster
+async function loadLogo(file, x = W()/2, y = H()/2) {
+  const w = Math.min(20, W() - 4);
+  if (/svg/.test(file.type) || /\.svg$/i.test(file.name)) {
+    const doc = new DOMParser().parseFromString(await file.text(), 'image/svg+xml'), root = doc.documentElement;
+    if (root.nodeName !== 'svg') throw new Error('SVG invalide');
+    cleanSvg(doc);
+    const vb = root.getAttribute('viewBox') || `0 0 ${parseFloat(root.getAttribute('width')) || 100} ${parseFloat(root.getAttribute('height')) || 100}`;
+    const [, , vw, vh] = vb.split(/[\s,]+/).map(Number);
+    add({type:'logo', svg: root.innerHTML, vb, ratio: vw/vh || 1, x:snap(x), y:snap(y), w});
+  } else {
+    const img = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(file); });
+    const el = new Image(); el.src = img; await el.decode();
+    add({type:'logo', img, ratio: el.width/el.height, x:snap(x), y:snap(y), w});
+  }
+}
+$('logofile').onchange = async () => {
+  try { await loadLogo($('logofile').files[0]); } catch (err) { msg('Logo illisible : ' + err.message); }
+  $('logofile').value = '';
+};
+const pt = e => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
 svg.ondragover = e => e.preventDefault();
 svg.ondrop = e => {
   e.preventDefault();
-  const k = +e.dataTransfer.getData('text/plain'), p = pt(e);
+  const p = pt(e), f = e.dataTransfer.files[0];
+  if (f) { loadLogo(f, p.x, p.y).catch(err => msg('Logo illisible : ' + err.message)); return; }
+  const k = +e.dataTransfer.getData('text/plain');
   if (PALETTE[k]) place(PALETTE[k][1], p.x, p.y);
 };
 
 // Réglages du panneau
 const bind = (id, k, num = true) => $(id).oninput = () => { state[k] = num ? +$(id).value : $(id).value; if (k === 'hp') state.w = null; render(); };
 bind('fmt', 'fmt', false); bind('hp', 'hp'); bind('nholes', 'nholes', false);
-$('w').oninput = () => { state.w = +$('w').value || null; svg.innerHTML = panelSvg(true); };
-$('rails').oninput = render; $('cotes').oninput = render; $('real').oninput = render; $('pcol').oninput = render; $('zoom').oninput = render;
+$('w').oninput = () => { state.w = +$('w').value || null; paint(); };
+$('w').onchange = render;
+$('name').oninput = () => { state.name = $('name').value; clearTimeout($('name').t); $('name').t = setTimeout(commit, 500); };
+$('rails').oninput = render; $('cotes').oninput = render; $('grid').oninput = render; $('zoom').oninput = render; $('pcol').oninput = () => paint();
+function setView(v) {
+  view = v;
+  for (const [id, m] of [['vPlan', 'plan'], ['vReal', 'real'], ['v3d', '3d']]) $(id).classList.toggle('on', v === m);
+  document.body.classList.toggle('v3d', v === '3d');
+  render();
+}
+$('vPlan').onclick = () => setView('plan'); $('vReal').onclick = () => setView('real'); $('v3d').onclick = () => setView('3d');
 
 // Glisser-déposer : aimant sur les autres éléments / axe central, sinon sur la grille
 let drag = null, guideX = null, guideY = null;
 const MAG = 1.5; // mm, distance de capture de l'aimant
-const pt = e => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
 function magnet(v, targets) {
   let best = null;
   for (const t of targets) if (Math.abs(t - v) <= MAG && (best == null || Math.abs(t - v) < Math.abs(best - v))) best = t;
   return best;
 }
-function redraw() {
-  let s = panelSvg(true);
-  if (drag) {
-    const w = W(), h = H(), st = 'stroke="#f0a" stroke-width="0.15"';
-    if (guideX != null) s += `<line x1="${guideX}" x2="${guideX}" y1="0" y2="${h}" ${st}/>`;
-    if (guideY != null) s += `<line x1="0" x2="${w}" y1="${guideY}" y2="${guideY}" ${st}/>`;
-  }
-  svg.innerHTML = s;
-}
 svg.onpointerdown = e => {
-  const i = e.target.dataset.i;
-  if (i == null) { sel = null; render(); return; }
+  const hk = e.target.dataset.h;
+  if (hk != null) { // redimensionner le logo : l'angle opposé reste fixe, proportions gardées
+    e.preventDefault();
+    const it = state.items[sel], sx = hk & 1 ? 1 : -1, sy = hk & 2 ? 1 : -1;
+    drag = { resize: { sx, sy, ax: it.x - sx*it.w/2, ay: it.y - sy*it.w/it.ratio/2 } };
+    svg.setPointerCapture(e.pointerId);
+    return;
+  }
+  const i = e.target.closest('[data-i]')?.dataset.i;
+  if (i == null) { if (sel != null) { sel = null; render(); } return; }
   e.preventDefault();
   sel = +i; const p = pt(e), it = state.items[sel];
   drag = { dx: it.x - p.x, dy: it.y - p.y };
   svg.setPointerCapture(e.pointerId); svg.classList.add('dragging');
-  renderProps(); redraw();
+  renderProps(); paint();
 };
 svg.onpointermove = e => {
   if (!drag) return;
   const p = pt(e), it = state.items[sel];
+  if (drag.resize) {
+    const {sx, sy, ax, ay} = drag.resize;
+    const w = +Math.max(2, (p.x - ax)*sx, (p.y - ay)*sy*it.ratio).toFixed(1);
+    it.w = w; it.x = +(ax + sx*w/2).toFixed(2); it.y = +(ay + sy*w/it.ratio/2).toFixed(2);
+    paint(); return;
+  }
   const others = state.items.filter((_, j) => j !== sel);
   const x = p.x + drag.dx, y = p.y + drag.dy;
   if (e.altKey) { guideX = guideY = null; it.x = +x.toFixed(2); it.y = +y.toFixed(2); } // Alt = sans aimant
@@ -327,48 +972,31 @@ svg.onpointermove = e => {
     guideY = magnet(y, others.map(o => o.y));
     it.x = guideX ?? snap(x); it.y = guideY ?? snap(y);
   }
-  redraw();
+  paint();
 };
 svg.onpointerup = svg.onpointercancel = () => {
   if (!drag) return;
   drag = null; guideX = guideY = null; svg.classList.remove('dragging');
   render();
 };
-$('grid').oninput = render;
 
 document.onkeydown = e => {
-  if (sel == null || e.target.tagName === 'INPUT') return;
+  if (e.target.closest?.('input, select, textarea')) return;
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (mod && k === 'z') { e.shiftKey ? redo() : undo(); e.preventDefault(); return; }
+  if (mod && k === 'y') { redo(); e.preventDefault(); return; }
+  if (e.key === 'Escape') { closePickers(); if (sel != null) { sel = null; render(); } return; }
+  if (sel == null || view === '3d') return;
   const it = state.items[sel], s = (e.shiftKey ? 10 : 1) * (+$('grid').value || 0.1);
   const mv = {ArrowLeft:[-s,0], ArrowRight:[s,0], ArrowUp:[0,-s], ArrowDown:[0,s]}[e.key];
   if (mv) { it.x = +(it.x + mv[0]).toFixed(2); it.y = +(it.y + mv[1]).toFixed(2); render(); e.preventDefault(); }
   else if (e.key === 'Delete' || e.key === 'Backspace') { del(); e.preventDefault(); }
-  else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) { dup(); e.preventDefault(); }
+  else if (mod && k === 'd') { dup(); e.preventDefault(); }
 };
 
-// Fichiers
-function download(name, data, type) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([data], {type})); a.download = name; a.click();
-  URL.revokeObjectURL(a.href);
-}
-const baseName = () => `eurorack_${state.fmt}_${state.hp}HP`;
-$('exSvg').onclick = () => {
-  const w = W(), h = H(), keepSel = sel; sel = null;
-  const out = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">${panelSvg(false)}</svg>`;
-  sel = keepSel;
-  download(baseName() + '.svg', out, 'image/svg+xml');
-};
-$('save').onclick = () => download(baseName() + '.json', JSON.stringify(state, null, 1), 'application/json');
-$('load').onclick = () => $('file').click();
-$('file').onchange = async () => {
-  try {
-    state = {...state, ...JSON.parse(await $('file').files[0].text())};
-    for (const k of ['fmt','hp','nholes']) $(k).value = state[k];
-    sel = null; render();
-  } catch (err) { $('props').textContent = 'Fichier illisible : ' + err.message; }
-  $('file').value = '';
-};
-
+// ---------- Démarrage : reprendre le travail en cours ----------
+try { const j = localStorage.getItem('eurorack.current'); if (j) state = normalize(JSON.parse(j)); } catch {}
+syncInputs();
 render();
 </script>
 </body>
