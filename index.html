@@ -97,7 +97,7 @@
     #zoomRow { display:none; }
     .viewbar { padding:4px; gap:6px; }
     .seg button { padding:7px 10px; font-size:13px; }
-    .viewbar > button { padding:6px 8px; }
+    .viewbar > button { padding:6px 8px; font-size:12px; }
     .viewbar select { padding:4px; }
     .long { display:none; }
     .pal { grid-template-columns:repeat(4, 1fr); }
@@ -177,7 +177,7 @@
 
   <details><summary>Raccourcis</summary>
   <p class="info">Glisser : aimanté sur la grille, l'axe central et les autres éléments (Alt = libre).<br>
-  Flèches = déplacer (Maj = ×10) · R = tourner de 90° (Maj+R = 15°) · Suppr = effacer · ⌘D = dupliquer · ⌘Z / ⇧⌘Z = annuler / rétablir · Échap = désélectionner.</p>
+  Flèches = déplacer (Maj = ×10) · R = tourner de 90° (Maj+R = 15°) · Suppr = effacer · ⌘D = dupliquer · ⌘Z / ⇧⌘Z = annuler / rétablir (boutons sous le visuel) · Échap = désélectionner.</p>
   </details>
 </aside>
 <svg width="0" height="0" style="position:absolute" id="defs"></svg>
@@ -185,7 +185,7 @@
   <svg id="view" xmlns="http://www.w3.org/2000/svg"></svg>
   <div id="view3d"><div id="v3dmsg"></div></div>
   <div class="viewbar">
-    <button id="undo" title="Annuler (⌘Z)">↶</button><button id="redo" title="Rétablir (⇧⌘Z)">↷</button>
+    <button id="undo" title="Annuler la dernière action (⌘Z)">↶ Annuler</button><button id="redo" title="Rétablir (⇧⌘Z)">↷ Rétablir</button><button id="clear" title="Vider le panneau (annulable avec ⌘Z)">Vider</button>
     <div class="seg"><button id="vPlan" class="on">Plan</button><button id="vReal">Aperçu<span class="long"> réaliste</span></button><button id="v3d">3D</button></div>
     <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option><option value="mdf">MDF</option></select>
     <button id="fit3d" class="only3d" title="Recentrer">⟲</button><button id="png3d" class="only3d"><span class="long">Image </span>PNG</button>
@@ -676,6 +676,16 @@ function undo() { if (past.length) { future.push(lastSnap); restore(past.pop());
 function redo() { if (future.length) { past.push(lastSnap); restore(future.pop()); } }
 function syncHistory() { $('undo').disabled = !past.length; $('redo').disabled = !future.length; }
 $('undo').onclick = undo; $('redo').onclick = redo;
+$('clear').onclick = () => { // deux clics : pas de boîte de dialogue, et ⌘Z ramène tout
+  if (!state.items.length) return msg('Le panneau est déjà vide');
+  if (!$('clear').dataset.armed) {
+    $('clear').dataset.armed = 1; $('clear').textContent = 'Vider ?';
+    setTimeout(() => { delete $('clear').dataset.armed; $('clear').textContent = 'Vider'; }, 3000);
+    return;
+  }
+  delete $('clear').dataset.armed; $('clear').textContent = 'Vider';
+  state.items = []; sel = null; render(); msg('Panneau vidé (⌘Z pour revenir en arrière)');
+};
 
 // ---------- Lecture sûre d'un module (fichier d'un ami, stockage local) ----------
 
@@ -1158,7 +1168,7 @@ function place(make, x, y) {
       const art = it.type === 'hole' ? realSvg(it, -1) : it.type === 'rect' ? realRect(it, -1) : it.type === 'bar' ? realBar(it, -1)
         : it.type === 'logo' ? `<g transform="translate(-8 -8) scale(0.667)">${it.svg}</g>`
         : '<text x="0" y="2.5" font-size="7" font-weight="bold" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
-      const e = Math.max(10, it.type === 'rect' ? Math.max(it.w, it.h)/2 + 3 : it.type === 'bar' ? (it.n - 1)*it.pitch/2 + it.d : 0); // vignette à l'échelle de l'objet
+      const e = Math.max(10, it.type === 'rect' ? Math.max(it.w, it.h)/2 + 3 : it.type === 'bar' ? (it.n - 1)*it.pitch/2 + it.d : it.type === 'hole' ? footR(it) + 1 : 0); // vignette à l'échelle de l'objet
       t.innerHTML = `<svg viewBox="${-e} ${-e} ${2*e} ${2*e}">${art}</svg>${name}`;
       t.onclick = () => place(make, W()/2, H()/2);
       t.ondragstart = ev => ev.dataTransfer.setData('text/plain', idx);
