@@ -1271,11 +1271,11 @@ function place(make, x, y) {
     }
   }
 }
-{ const t = document.createElement('div');
+{ const t = document.createElement('div'); // vignette Logo : dans la dernière catégorie, pour se replier avec elle
   t.className = 'tile';
   t.innerHTML = '<svg viewBox="-10 -10 20 20"><path d="M-6 5L-1 -2L2 2L4 0L7 5Z" fill="#888"/><circle cx="3" cy="-4" r="2" fill="#bbb"/></svg>Logo';
   t.onclick = () => $('logofile').click();
-  $('presets').append(t); }
+  document.querySelector('#presets .palgrp:last-of-type .pal').append(t); }
 
 // Recherche d'icônes Lucide (ISC), index et dessins chargés à la demande depuis le CDN
 const FR_EN = {onde:'wave', son:'audio volume', casque:'headphones', éclair:'zap', eclair:'zap', alimentation:'power', horloge:'clock', filtre:'filter',
