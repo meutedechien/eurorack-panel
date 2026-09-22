@@ -30,6 +30,7 @@
 
   .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
   .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
+  .palh { grid-column:1/-1; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0; }
   .tile:hover { border-color:var(--acc); background:#fff; }
   .tile svg { width:44px; height:44px; display:block; margin:0 auto 2px; pointer-events:none; }
 
@@ -171,7 +172,7 @@
   <div class="viewbar">
     <button id="undo" title="Annuler (⌘Z)">↶</button><button id="redo" title="Rétablir (⇧⌘Z)">↷</button>
     <div class="seg"><button id="vPlan" class="on">Plan</button><button id="vReal">Aperçu<span class="long"> réaliste</span></button><button id="v3d">3D</button></div>
-    <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option></select>
+    <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option><option value="mdf">MDF</option></select>
     <button id="fit3d" class="only3d" title="Recentrer">⟲</button><button id="png3d" class="only3d"><span class="long">Image </span>PNG</button>
     <span id="warn" class="no3d"></span><span id="status"></span>
   </div>
@@ -184,22 +185,28 @@ const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80
 const HEIGHTS = {'3u':128.5, ij:39.65, pl:43.18};
 const RAIL = {'3u':10, ij:0, pl:0}; // ponytail: 10 mm de rail en haut/bas en 3U, valeur usuelle, pas de la norme
 const MOUNT = {d:3.2, slot:2, y:3, x:7.5}; // norme Doepfer : M3, 3 mm des bords haut/bas, 7,5 mm du bord gauche
-const PRESETS = [
-  ['Jack 3,5 mm', 6, 'IN', 'jack'], ['Pot 9 mm', 7, 'LEVEL', 'pot9'], ['Pot 16 mm', 7.5, 'FREQ', 'pot16'],
-  ['LED 3 mm', 3.1, '', 'led'], ['LED 5 mm', 5.1, '', 'led'], ['Inter. à levier', 6.2, '', 'toggle'],
-  ['Bouton poussoir', 7.2, '', 'button'], ['Gros bouton 15 mm', 15, '', 'bigbutton', '#f2c200'], ['Encodeur', 7, '', 'encoder'], ['Trou libre', 4, '', 'hole']];
-const KINDS = ['jack', 'pot9', 'pot16', 'led', 'toggle', 'button', 'bigbutton', 'encoder', 'hole'];
+const KINDS = ['jack', 'jack635', 'midi', 'dc', 'pot9', 'pot16', 'led', 'toggle', 'button', 'bigbutton', 'encoder', 'hole'];
+const RECT_KINDS = ['vu', 'oled', 'fader', 'rled', 'rocker'];
+// Encombrement derrière la plaque (largeur × hauteur, mm), centré sur l'axe : zone inutilisable pour les voisins
+const BODY = { pot9:[12, 15], pot16:[12, 15], encoder:[12, 15] }; // ponytail: mêmes cotes pour tous les pots (donnée utilisateur), à affiner par modèle
 const COLORED = ['led', 'button', 'bigbutton'];
 // Capuchons de potentiomètre au choix (aperçu seulement : le trou dépend du potentiomètre, pas du capuchon)
 const CAPS = { '':{name:"D'origine"}, alu9:{name:'Alu cranté Ø9', r:4.5}, jupe27:{name:'Jupe Ø27', r:13.5} };
 const KNOBS = ['pot9', 'pot16', 'encoder'];
 const capR = (it, def) => CAPS[it.cap]?.r ?? def;
 // Rayon visible du composant monté (bouton, écrou…) : étiquette au-dessus, cercle de sélection, chevauchements
-const REAL_R = { jack:()=>4, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:()=>9.5 };
+const REAL_R = { jack:()=>4, jack635:()=>7, midi:()=>7.75, dc:()=>6.5, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:it=>9.5*it.d/15 };
 const footR = it => Math.max(it.d/2, REAL_R[it.kind]?.(it) ?? 0);
-const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'} };
+const collR = it => it.kind === 'toggle' ? 4.62 : footR(it); // les leviers pointent tous du même côté : seul l'écrou compte
+const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'}, mdf:{fill:'url(#mdf)', ink:'#3a2212'} }; // MDF : gravure laser = brûlé brun foncé
 const REAL_DEFS = `<defs>
   <linearGradient id="alu" x1="0" y1="0" x2="1" y2="0.15"><stop offset="0" stop-color="#c9cccf"/><stop offset=".5" stop-color="#e6e8ea"/><stop offset="1" stop-color="#bfc2c6"/></linearGradient>
+  <linearGradient id="mdf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c29a6e"/><stop offset=".5" stop-color="#b98f63"/><stop offset="1" stop-color="#ad8358"/></linearGradient>
+  <linearGradient id="lever" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f8389"/><stop offset=".45" stop-color="#f4f5f7"/><stop offset="1" stop-color="#8d9196"/></linearGradient>
+  <linearGradient id="vuface" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf2cf"/><stop offset="1" stop-color="#efd690"/></linearGradient>
+  <linearGradient id="rgb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b6b"/><stop offset=".5" stop-color="#b44dff"/><stop offset="1" stop-color="#3bb6ff"/></linearGradient>
+  <linearGradient id="rocker" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4a4a"/><stop offset=".5" stop-color="#262626"/><stop offset=".5" stop-color="#101010"/><stop offset="1" stop-color="#1c1c1c"/></linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient>
   <radialGradient id="metal" cx=".35" cy=".3"><stop offset="0" stop-color="#fafafa"/><stop offset=".6" stop-color="#b8bbbf"/><stop offset="1" stop-color="#7d8186"/></radialGradient>
   <radialGradient id="knob" cx=".4" cy=".3"><stop offset="0" stop-color="#555"/><stop offset=".7" stop-color="#1e1e1e"/><stop offset="1" stop-color="#0a0a0a"/></radialGradient>
   <radialGradient id="shine" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
@@ -291,11 +298,23 @@ function realSvg(it, i) {
     case 'pot16': s = knob(8.5, false) + circ(8.5, 'none', 'stroke="#000" stroke-width="0.3"'); break;
     case 'encoder': s = knob(6, true); break;
     case 'led': s = circ(it.d/2 + 0.3, '#333') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
-    case 'toggle': s = hex(4.3) + circ(2.4, 'url(#metal)', 'stroke="#555" stroke-width="0.1"')
-      + `<ellipse ${a} cx="${x}" cy="${y - 3}" rx="1.3" ry="3.4" fill="url(#metal)" stroke="#555" stroke-width="0.1" filter="url(#shadow)"/>`; break;
+    case 'toggle': { // mini-inverseur : écrou 8 mm sur plat, canon fileté Ø6, levier conique incliné vu de dessus
+      const dir = it.pos === 'down' ? 1 : it.pos === 'mid' ? 0 : -1, ty = y + dir*5;
+      s = hex(4.62) + `<circle cx="${x}" cy="${y}" r="3.9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="0.25" pointer-events="none"/>`
+        + circ(3, 'url(#metal)', 'stroke="#666" stroke-width="0.12"')
+        + [2.5, 2.1].map(r => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="0.15" pointer-events="none"/>`).join('');
+      if (dir) s += `<polygon ${a} points="${x-1.25},${y} ${x+1.25},${y} ${x+0.9},${ty} ${x-0.9},${ty}" fill="url(#lever)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>`;
+      s += `<circle ${a} cx="${x}" cy="${ty}" r="1.3" fill="url(#metal)" stroke="#555" stroke-width="0.1" filter="url(#shadow)"/>`;
+      break; }
+    case 'jack635': s = hex(7) + circ(5, 'url(#metal)', 'stroke="#666" stroke-width="0.12"') + circ(3.9, '#8a8d91') + circ(3.25, '#111'); break;
+    case 'dc': s = circ(6.5, 'url(#metal)', 'stroke="#666" stroke-width="0.1" filter="url(#shadow)"') + knurl(6.5) + circ(5.2, 'url(#metal)') + circ(3.2, '#1a1a1a') + circ(1.05, 'url(#metal)'); break;
+    case 'midi': // DIN 5 broches 180°, détrompeur en bas
+      s = circ(7.75, '#2a2a2a') + circ(7.1, '#0d0d0d', 'stroke="#8a8d91" stroke-width="0.5"')
+        + [0, 45, 90, 135, 180].map(t => `<circle cx="${x + 3.6*Math.cos(t*Math.PI/180)}" cy="${y - 3.6*Math.sin(t*Math.PI/180)}" r="0.55" fill="#000" stroke="#666" stroke-width="0.12" pointer-events="none"/>`).join('')
+        + `<rect x="${x - 0.8}" y="${y + 5.4}" width="1.6" height="1.3" fill="#8a8d91" pointer-events="none"/>`; break;
     case 'button': s = circ(it.d/2 + 1.2, 'url(#metal)', 'filter="url(#shadow)"') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
     case 'bigbutton': // bague noire brillante Ø19, capuchon plat Ø12,5 (d'après photo)
-      s = circ(9.5, 'url(#bezel)', 'filter="url(#shadow)"') + circ(6.6, '#0a0a0a') + circ(6.25, col) + circ(6.25, 'url(#capsheen)'); break;
+      { const k = it.d/15; s = circ(9.5*k, 'url(#bezel)', 'filter="url(#shadow)"') + circ(6.6*k, '#0a0a0a') + circ(6.25*k, col) + circ(6.25*k, 'url(#capsheen)'); } break;
     default: s = circ(it.d/2, '#111');
   }
   if (i === sel) s += `<circle cx="${x}" cy="${y}" r="${footR(it) + 1.5}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`;
@@ -303,6 +322,65 @@ function realSvg(it, i) {
 }
 // Contour ondulé d'une jupe de bouton (points relatifs au centre)
 const scallop = (R, lobes, steps) => Array.from({length:steps}, (_, k) => { const t = k/steps*2*Math.PI, r = R - 1.1*Math.sin(lobes*t/2)**2; return [r*Math.cos(t), r*Math.sin(t)]; });
+
+function realRect(it, i) {
+  const {x, y, w, h} = it, x0 = x - w/2, y0 = y - h/2, a = `data-i="${i}"`, ns = 'pointer-events="none"';
+  let s = '', bw = w, bh = h;
+  if (it.kind === 'vu') { // VU-mètre à aiguille : cadran ambré, échelle, zone rouge
+    const cy = y + h*0.42, R = Math.min(w*0.44, h*0.78), P = (r, t) => [x + r*Math.sin(t*Math.PI/180), cy - r*Math.cos(t*Math.PI/180)];
+    const arc = (r, t1, t2) => { const [x1, y1] = P(r, t1), [x2, y2] = P(r, t2); return `M${x1} ${y1}A${r} ${r} 0 0 1 ${x2} ${y2}`; };
+    const [nx, ny] = P(R + 1, -18);
+    s = `<rect ${a} x="${x0-1.5}" y="${y0-1.5}" width="${w+3}" height="${h+3}" rx="2" fill="url(#bezel)" filter="url(#shadow)"/>`
+      + `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${it.r||0}" fill="url(#vuface)"/>`
+      + `<path d="${arc(R, -45, 20)}" fill="none" stroke="#222" stroke-width="0.35" ${ns}/><path d="${arc(R + 0.4, 20, 45)}" fill="none" stroke="#c0271d" stroke-width="1.1" ${ns}/>`
+      + Array.from({length:11}, (_, k) => { const t = -45 + k*9, [ax, ay] = P(R, t), [bx, by] = P(R + (k % 2 ? 1 : 1.8), t);
+          return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${t > 20 ? '#c0271d' : '#222'}" stroke-width="0.3" ${ns}/>`; }).join('')
+      + `<text x="${x}" y="${cy - R*0.4}" font-size="${(h*0.15).toFixed(2)}" font-weight="bold" text-anchor="middle" fill="#222" font-family="Helvetica, Arial, sans-serif" ${ns}>VU</text>`
+      + `<line x1="${x}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#111" stroke-width="0.3" ${ns}/>`
+      + `<path d="M${x - w*0.14} ${y0 + h}A${w*0.14} ${w*0.14} 0 0 1 ${x + w*0.14} ${y0 + h}Z" fill="#1a1a1a" ${ns}/>`
+      + `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="url(#glass)" ${ns}/>`;
+    bw += 3; bh += 3;
+  } else if (it.kind === 'oled') { // écran OLED : verre noir, texte et forme d'onde cyan
+    const wave = Array.from({length:41}, (_, k) => `${x0 + 1 + k*(w - 2)/40},${y0 + h*0.7 + Math.sin(k/40*4*Math.PI)*h*0.17}`).join(' ');
+    s = `<rect ${a} x="${x0-1}" y="${y0-1}" width="${w+2}" height="${h+2}" rx="0.8" fill="#111" stroke="#333" stroke-width="0.2"/>`
+      + `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#03080a"/>`
+      + `<text x="${x0 + 1}" y="${y0 + h*0.34}" font-size="${(h*0.22).toFixed(2)}" textLength="${w - 2}" lengthAdjust="spacingAndGlyphs" fill="#7fe8ff" font-family="monospace" ${ns}>OSC 1  440 Hz</text>`
+      + `<polyline points="${wave}" fill="none" stroke="#7fe8ff" stroke-width="0.3" ${ns}/>`
+      + `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="url(#glass)" ${ns}/>`;
+    bw += 2; bh += 2;
+  } else if (it.kind === 'rled') { // LED rectangulaire multicolore
+    s = `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${Math.min(w, h)*0.2}" fill="url(#rgb)" stroke="#0006" stroke-width="0.15"/>`
+      + `<rect x="${x0}" y="${y0}" width="${w}" height="${h/2}" rx="${Math.min(w, h)*0.2}" fill="#fff" fill-opacity=".35" ${ns}/>`;
+    bw += 1; bh += 1;
+  } else if (it.kind === 'rocker') { // interrupteur à bascule on/off : collerette + bascule I / O
+    const v = h >= w, fs = Math.min(w, h)*0.32, [ix, iy, ox, oy] = v ? [x, y - h/4, x, y + h/4] : [x - w/4, y, x + w/4, y];
+    s = `<rect ${a} x="${x0-1}" y="${y0-1}" width="${w+2}" height="${h+2}" rx="1" fill="#141414" filter="url(#shadow)"/>`
+      + `<rect ${a} x="${x0+0.6}" y="${y0+0.6}" width="${w-1.2}" height="${h-1.2}" rx="0.6" fill="url(#rocker)"${v ? '' : ` transform="rotate(-90 ${x} ${y})"`}/>`
+      + `<text x="${ix}" y="${iy + fs*0.35}" font-size="${fs}" text-anchor="middle" fill="#eee" font-family="Helvetica, Arial, sans-serif" font-weight="bold" ${ns}>I</text>`
+      + `<text x="${ox}" y="${oy + fs*0.35}" font-size="${fs}" text-anchor="middle" fill="#eee" font-family="Helvetica, Arial, sans-serif" font-weight="bold" ${ns}>O</text>`;
+    bw += 2; bh += 2;
+  } else if (it.kind === 'fader') { // fente + capuchon de fader
+    s = `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${Math.min(w, h)/2}" fill="#0b0b0b"/>`
+      + `<rect ${a} x="${x - 4.5}" y="${y - 6}" width="9" height="12" rx="1.2" fill="url(#knob)" filter="url(#shadow)"/>`
+      + [-3.5, -2.3, 2.3, 3.5].map(o => `<line x1="${x - 3.6}" x2="${x + 3.6}" y1="${y + o}" y2="${y + o}" stroke="#000" stroke-width="0.35" ${ns}/>`).join('')
+      + `<line x1="${x - 4}" x2="${x + 4}" y1="${y}" y2="${y}" stroke="#fff" stroke-width="0.5" ${ns}/>`;
+    bw = Math.max(w, 9); bh = Math.max(h, 12);
+  } else return `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${it.r||0}" fill="#0b0d10" stroke="${i === sel ? '#d33' : '#333'}" stroke-width="0.3"/>`;
+  if (i === sel) s += `<rect x="${x - bw/2 - 1}" y="${y - bh/2 - 1}" width="${bw + 2}" height="${bh + 2}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" ${ns}/>`;
+  return s;
+}
+// Barre de LED (façon VU) : k = 0 en bas (ou à gauche), vert → jaune → rouge
+const barPts = it => Array.from({length:it.n}, (_, k) => { const o = (k - (it.n - 1)/2) * it.pitch; return it.vertical ? [it.x, it.y - o] : [it.x + o, it.y]; });
+const barColor = (k, n) => k >= n - 1 ? '#ff2a1a' : k >= Math.round(n*0.65) ? '#ffc21a' : '#22dd44';
+const barLit = (k, n) => k < Math.round(n*0.7);
+function realBar(it, i) {
+  const a = `data-i="${i}"`, r = it.d/2;
+  let s = barPts(it).map(([px, py], k) => `<circle ${a} cx="${px}" cy="${py}" r="${r + 0.3}" fill="#333"/><circle ${a} cx="${px}" cy="${py}" r="${r}" fill="${barColor(k, it.n)}" fill-opacity="${barLit(k, it.n) ? 1 : 0.28}"/>`
+    + (barLit(k, it.n) ? `<circle cx="${px}" cy="${py}" r="${r}" fill="url(#shine)" pointer-events="none"/>` : '')).join('');
+  if (i === sel) { const L = (it.n - 1)*it.pitch + it.d + 3, T = it.d + 3, [bw, bh] = it.vertical ? [T, L] : [L, T];
+    s += `<rect x="${it.x - bw/2}" y="${it.y - bh/2}" width="${bw}" height="${bh}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`; }
+  return s;
+}
 
 function textSvg(t, i, fill, extra = '') {
   return `<text data-i="${i}" x="${t.x}" y="${t.y}" font-size="${t.size}" font-family="'${FONTS[t.font].family}', sans-serif" font-weight="${t.weight}" data-font="${t.font}" data-w="${t.weight}" fill="${fill}" stroke="none" text-anchor="middle"${extra}>${esc(t.str)}</text>`;
@@ -318,7 +396,9 @@ function itemSvg(it, i) {
     s += REAL ? realSvg(it, i) : `<circle data-i="${i}" cx="${it.x}" cy="${it.y}" r="${it.d/2}" ${cut}${c}/>`;
     if (t) s += textSvg(t, i, ink);
   } else if (it.type === 'rect') {
-    s += `<rect data-i="${i}" x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" rx="${it.r||0}" ${REAL ? `fill="#0b0d10" stroke="${i === sel ? '#d33' : '#333'}" stroke-width="0.3"` : cut + c}/>`;
+    s += REAL ? realRect(it, i) : `<rect data-i="${i}" x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" rx="${it.r||0}" ${cut}${c}/>`;
+  } else if (it.type === 'bar') {
+    s += REAL ? realBar(it, i) : barPts(it).map(([px, py]) => `<circle data-i="${i}" cx="${px}" cy="${py}" r="${it.d/2}" ${cut}${c}/>`).join('');
   } else if (it.type === 'text') {
     if (t) s += textSvg(t, i, ink, c ? ' stroke="#d33" stroke-width="0.15"' : '');
   } else if (it.type === 'logo') { // SVG gardé en vecteurs (gravure nette), PNG/JPEG en image
@@ -361,12 +441,21 @@ function issues() {
   const w = W(), h = H(), rail = RAIL[state.fmt], out = new Map();
   const holes = state.items.map((it, i) => [it, i]).filter(([it]) => it.type === 'hole');
   for (const [a, i] of holes) {
-    const ra = footR(a);
+    const ra = collR(a);
     if (a.x - ra < 0 || a.x + ra > w || a.y - ra < 0 || a.y + ra > h) out.set(i, 'déborde du panneau');
     else if (rail && (a.y - a.d/2 < rail || a.y + a.d/2 > h - rail)) out.set(i, 'trou dans la zone des rails');
-    for (const [b, j] of holes) if (j > i && Math.hypot(a.x - b.x, a.y - b.y) < ra + footR(b) - 0.05) { out.set(i, 'chevauche un autre composant'); out.set(j, 'chevauche un autre composant'); }
+    for (const [b, j] of holes) if (j > i && Math.hypot(a.x - b.x, a.y - b.y) < ra + collR(b) - 0.05) { out.set(i, 'chevauche un autre composant'); out.set(j, 'chevauche un autre composant'); }
+    const A = bodyRect(a);
+    if (A && rail && (A[1] < rail || A[1] + A[3] > h - rail)) out.set(i, 'corps arrière dans la zone des rails');
+    if (A) for (const [b, j] of holes) { const B = bodyRect(b);
+      if (j > i && B && A[0] < B[0] + B[2] && B[0] < A[0] + A[2] && A[1] < B[1] + B[3] && B[1] < A[1] + A[3]) { out.set(i, 'corps arrière qui se touchent'); out.set(j, 'corps arrière qui se touchent'); } }
   }
   return out;
+}
+const bodyRect = it => { const b = BODY[it.kind]; return it.type === 'hole' && b ? [it.x - b[0]/2, it.y - b[1]/2, b[0], b[1]] : null; };
+function bodiesSvg() {
+  return state.items.map(bodyRect).filter(Boolean).map(([bx, by, bw, bh]) =>
+    `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#7a4fd610" stroke="#7a4fd6" stroke-width="0.2" stroke-dasharray="0.8 0.5" pointer-events="none"/>`).join('');
 }
 function issuesSvg() {
   const list = issues();
@@ -418,7 +507,7 @@ function panelSvg(guides) {
   }
   s += `<g fill="none" stroke="#f00" stroke-width="0.1">` + mountHoles().map(p => slotPath(p.x, p.y, MOUNT.d, MOUNT.slot)).join('') + `</g>`;
   s += state.items.map(itemSvg).join('');
-  return guides ? s + issuesSvg() + dimsSvg() : s;
+  return guides ? s + bodiesSvg() + issuesSvg() + dimsSvg() : s;
 }
 
 // Dessin de l'écran (sans reconstruire la barre latérale) ; en 3D, reconstruction différée de la scène
@@ -453,17 +542,21 @@ function renderProps() {
   if (!it) { p.innerHTML = 'Clique sur un élément.'; return; }
   const fields = { hole:[['x','X'],['y','Y'],['d','Ø'],['label','Étiquette','text'],['font','Police','font'],['size','Taille étiquette'],
                          ...(COLORED.includes(it.kind) ? [['color','Couleur','color']] : []),
-                         ...(KNOBS.includes(it.kind) ? [['cap','Capuchon','cap']] : [])],
+                         ...(KNOBS.includes(it.kind) ? [['cap','Capuchon','cap']] : []),
+                         ...(it.kind === 'toggle' ? [['pos','Levier','select', [['up','Haut'], ['mid','Milieu'], ['down','Bas']]]] : [])],
+                   bar:[['x','X centre'],['y','Y centre'],['n','Nombre de LED'],['pitch','Pas (mm)'],['d','Ø'],['vertical','Vertical','checkbox']],
                    rect:[['x','X centre'],['y','Y centre'],['w','Largeur'],['h','Hauteur'],['r','Rayon coins']],
                    text:[['x','X'],['y','Y'],['text','Texte','text'],['font','Police','font'],['size','Taille'],['bold','Gras','checkbox']],
                    logo:[['x','X centre'],['y','Y centre'],['w','Largeur (mm)']] }[it.type];
-  p.innerHTML = fields.map(([k, l, t]) => t === 'cap'
+  p.innerHTML = fields.map(([k, l, t, opts]) => t === 'select'
+    ? `<label>${l} <select data-k="${k}">${opts.map(([v, n]) => `<option value="${v}"${it[k] === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`
+    : t === 'cap'
     ? `<div>${l}</div><div class="caps">${Object.entries(CAPS).map(([id, c]) => `<button type="button" data-cap="${id}" class="${(it.cap || '') === id ? 'on' : ''}"><svg viewBox="-14 -14 28 28">${realSvg({...it, cap:id, x:0, y:0}, -1)}</svg>${c.name}</button>`).join('')}</div>`
     : t === 'font'
     ? `<label>${l} <span data-fp="${k}"></span></label>`
     : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`).join('')
     + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button></div>`;
-  p.querySelectorAll('input').forEach(inp => {
+  p.querySelectorAll('input, select[data-k]').forEach(inp => {
     inp.oninput = () => {
       const k = inp.dataset.k;
       it[k] = inp.type === 'checkbox' ? inp.checked : inp.type === 'number' ? +inp.value : inp.value;
@@ -552,9 +645,11 @@ function normItem(it) {
       Object.assign(o, {kind: KINDS.includes(it.kind) ? it.kind : 'hole', d: num(it.d, 4, 0.5, 60), label: str(it.label, 40), size: num(it.size, 2.5, 0.5, 40), font});
       if (COLORED.includes(o.kind)) o.color = /^#[0-9a-f]{3,8}$/i.test(it.color) ? it.color : '#e22222';
       if (KNOBS.includes(o.kind) && CAPS[it.cap]) o.cap = it.cap;
+      if (o.kind === 'toggle') o.pos = ['up', 'mid', 'down'].includes(it.pos) ? it.pos : 'up';
       return o;
     case 'text': return Object.assign(o, {text: str(it.text, 80), size: num(it.size, 4, 0.5, 80), bold: !!it.bold, font});
-    case 'rect': return Object.assign(o, {w: num(it.w, 10, 0.5, 500), h: num(it.h, 6, 0.5, 500), r: num(it.r, 0, 0, 100)});
+    case 'rect': return Object.assign(o, {w: num(it.w, 10, 0.5, 500), h: num(it.h, 6, 0.5, 500), r: num(it.r, 0, 0, 100)}, RECT_KINDS.includes(it.kind) ? {kind: it.kind} : {});
+    case 'bar': return Object.assign(o, {n: Math.round(num(it.n, 8, 1, 30)), pitch: num(it.pitch, 5, 1, 30), d: num(it.d, 3.1, 0.5, 15), vertical: it.vertical !== false});
     case 'logo': {
       Object.assign(o, {w: num(it.w, 20, 1, 500), ratio: num(it.ratio, 1, 0.01, 100)});
       if (typeof it.svg === 'string') {
@@ -781,7 +876,9 @@ async function build3d() {
     const shape = new T.Shape([new T.Vector2(-w/2, -h/2), new T.Vector2(w/2, -h/2), new T.Vector2(w/2, h/2), new T.Vector2(-w/2, h/2)]);
     const inside = (x, y, r) => x - r > 0 && x + r < w && y - r > 0 && y + r < h;
     for (const it of state.items) {
-      if (it.type === 'hole' && inside(it.x, it.y, it.d/2)) { const [cx, cy] = P(it.x, it.y), p = new T.Path(); p.absarc(cx, cy, it.d/2, 0, Math.PI*2, true); shape.holes.push(p); }
+      const round = (x, y, r) => { if (!inside(x, y, r)) return; const [cx, cy] = P(x, y), p = new T.Path(); p.absarc(cx, cy, r, 0, Math.PI*2, true); shape.holes.push(p); };
+      if (it.type === 'hole') round(it.x, it.y, it.d/2);
+      if (it.type === 'bar') barPts(it).forEach(([bx, by]) => round(bx, by, it.d/2));
       if (it.type === 'rect' && inside(it.x, it.y, Math.max(it.w, it.h)/2)) { const [cx, cy] = P(it.x, it.y);
         shape.holes.push(new T.Path([new T.Vector2(cx - it.w/2, cy - it.h/2), new T.Vector2(cx - it.w/2, cy + it.h/2), new T.Vector2(cx + it.w/2, cy + it.h/2), new T.Vector2(cx + it.w/2, cy - it.h/2)])); }
     }
@@ -790,9 +887,10 @@ async function build3d() {
       p.moveTo(a, cy - r); p.lineTo(b, cy - r); p.absarc(b, cy, r, -Math.PI/2, Math.PI/2, false); p.lineTo(a, cy + r); p.absarc(a, cy, r, Math.PI/2, Math.PI*1.5, false);
       shape.holes.push(p);
     }
-    const plate = { alu: M('#aeb3b9', 0.9, 0.42), noir: M('#18181a', 0.4, 0.45), blanc: M('#efeee9', 0.05, 0.55) }[pcol];
-    const panel = mesh(new T.ExtrudeGeometry(shape, {depth:2, bevelEnabled:false, curveSegments:40}), plate);
-    panel.position.z = -2; g.add(panel);
+    const plate = { alu: M('#aeb3b9', 0.9, 0.42), noir: M('#18181a', 0.4, 0.45), blanc: M('#efeee9', 0.05, 0.55), mdf: M('#b88c60', 0, 0.9) }[pcol];
+    const thick = pcol === 'mdf' ? 3 : 2; // MDF 3 mm, aluminium 2 mm
+    const panel = mesh(new T.ExtrudeGeometry(shape, {depth:thick, bevelEnabled:false, curveSegments:40}), plate);
+    panel.position.z = -thick; g.add(panel);
 
     // Gravure
     const tex = new T.CanvasTexture(await engraveCanvas(PANEL[pcol].ink));
@@ -808,9 +906,39 @@ async function build3d() {
     }
 
     // Composants (cotes des aperçus 2D ; hauteurs typiques)
+    const svgTexture = async (markup, pw, ph) => { // rendu 2D réaliste réutilisé comme texture (VU-mètre, OLED)
+      const im = new Image(); im.src = URL.createObjectURL(new Blob([markup], {type:'image/svg+xml'}));
+      await im.decode().catch(() => {});
+      const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph; cv.getContext('2d').drawImage(im, 0, 0, pw, ph);
+      URL.revokeObjectURL(im.src);
+      const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
+    };
+    const led = (r, color, lit) => { const lm = M(color, 0, 0.1, {emissive: color, emissiveIntensity: lit ? 0.5 : 0.04, transparent: true, opacity: lit ? 0.94 : 0.55});
+      const dome = mesh(new T.SphereGeometry(r, 32, 16, 0, Math.PI*2, 0, Math.PI/2), lm); dome.rotation.x = Math.PI/2; dome.position.z = 1.2;
+      const o = new T.Group(); o.add(cyl(r, 1.2, lm), dome); return o; };
     for (const it of state.items) {
+      if (it.type === 'bar') {
+        barPts(it).forEach(([bx, by], k) => { const o = led(it.d/2, barColor(k, it.n), barLit(k, it.n)), [px, py] = P(bx, by); o.position.set(px, py, 0); g.add(o); });
+        continue;
+      }
+      if (it.type === 'rect' && it.kind) {
+        const [cx, cy] = P(it.x, it.y), c = new T.Group();
+        if (it.kind === 'fader') {
+          c.add(box(1.2, 1.2, 1.5, mat.dark, 0, 0, 0.25), box(9, 12, 7, mat.black, 0, 0, 4.5), box(8, 0.5, 0.1, mat.white, 0, 0, 8.05),
+                ...[-3.5, -2.3, 2.3, 3.5].map(o => box(7.2, 0.35, 0.1, mat.dark, 0, o, 8.05)));
+        } else {
+          const ext = {vu:3, oled:2, rled:0, rocker:2}[it.kind], pw = it.w + ext, ph = it.h + ext, lit = it.kind === 'oled' || it.kind === 'rled';
+          const tex = await svgTexture(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pw/2} ${-ph/2} ${pw} ${ph}" width="${pw*10}" height="${ph*10}">${REAL_DEFS}${realRect({...it, x:0, y:0}, -1)}</svg>`, Math.round(pw*10), Math.round(ph*10));
+          const face = new T.Mesh(new T.PlaneGeometry(pw, ph), lit ? new T.MeshBasicMaterial({map:tex, transparent:true}) : M('#fff', 0, 0.45, {map:tex, transparent:true}));
+          const depth = {vu:0.8, oled:0.3, rled:1.2, rocker:3}[it.kind];
+          face.position.z = depth + 0.02; c.add(box(pw, ph, depth, mat.gloss, 0, 0, depth/2), face);
+        }
+        c.position.set(cx, cy, 0); g.add(c);
+        continue;
+      }
       if (it.type !== 'hole') continue;
       const [cx, cy] = P(it.x, it.y), c = new T.Group(), col = M(it.color || '#e22222', 0.05, 0.4);
+      if (BODY[it.kind]) c.add(box(...BODY[it.kind], 10, M('#2f5d9a', 0.1, 0.5), 0, 0, -thick - 5)); // corps derrière la plaque
       const mark = (y0, len, z) => box(0.5, len, 0.12, mat.white, 0, y0 + len/2, z + 0.06);
       if (KNOBS.includes(it.kind) && it.cap === 'alu9')
         c.add(cyl(4.5, 11, mat.knurl, 0, 30), cyl(3.5, 0.3, mat.alu, 11), mark(2.2, 1.1, 11.3));
@@ -822,14 +950,22 @@ async function build3d() {
         case 'pot9': c.add(cyl(5.5, 11, mat.black, 0, 64, 5.1), mark(1.4, 3.4, 11)); break;
         case 'pot16': c.add(cyl(8.5, 14, mat.black, 0, 64, 7.9), mark(2.1, 5.6, 14)); break;
         case 'encoder': c.add(cyl(6, 12, mat.knurl, 0, 28), mark(1.5, 3.7, 12)); break;
-        case 'led': { const lm = M(it.color, 0, 0.1, {emissive: it.color, emissiveIntensity: 0.35, transparent: true, opacity: 0.92});
-          const dome = mesh(new T.SphereGeometry(it.d/2, 32, 16, 0, Math.PI*2, 0, Math.PI/2), lm); dome.rotation.x = Math.PI/2; dome.position.z = 1.2;
-          c.add(cyl(it.d/2, 1.2, lm), dome); break; }
-        case 'toggle': { const lever = new T.Group(), stick = mesh(new T.CylinderGeometry(0.8, 1.25, 11, 24), mat.metal), tip = mesh(new T.SphereGeometry(1.2, 20, 12), mat.metal);
-          stick.position.y = 5.5; tip.position.y = 11; lever.add(stick, tip); lever.position.z = 6; lever.rotation.x = 70 * Math.PI / 180; // levier incliné vers le haut
-          c.add(cyl(4.3, 1.8, mat.metal, 0, 6), cyl(2.4, 6, mat.metal), lever); break; }
+        case 'led': c.add(led(it.d/2, it.color, true)); break;
+        case 'toggle': { // écrou 8 mm, rondelle, canon fileté Ø6, levier conique incliné de 18° (haut / milieu / bas)
+          const tilt = it.pos === 'down' ? -1 : it.pos === 'mid' ? 0 : 1, lever = new T.Group();
+          const stick = mesh(new T.CylinderGeometry(0.9, 1.25, 9, 24), mat.metal), tip = mesh(new T.SphereGeometry(1.25, 20, 12), mat.metal);
+          stick.position.y = 4.5; tip.position.y = 9; lever.add(stick, tip);
+          lever.position.z = 7; lever.rotation.x = (90 - 18*tilt) * Math.PI / 180;
+          c.add(cyl(4.62, 1.6, mat.metal, 0, 6), cyl(4.3, 0.4, mat.metal, 1.6), cyl(3, 5, mat.metal, 2, 40), lever); break; }
+        case 'jack635': c.add(cyl(7, 1.8, mat.metal, 0, 6), cyl(5, 4, mat.metal), cyl(3.25, 0.1, mat.dark, 4)); break;
+        case 'dc': c.add(cyl(6.5, 2, mat.metal, 0, 36), cyl(5.2, 4, mat.metal), cyl(3.2, 0.1, mat.dark, 4), cyl(1.05, 3, mat.metal, 1.3)); break;
+        case 'midi': { // prise DIN derrière la plaque, vue à travers le trou
+          const shell = mesh(new T.CylinderGeometry(7.3, 7.3, 1.4, 48, 1, true), mat.metal); shell.rotation.x = Math.PI/2; shell.position.z = -0.7;
+          c.add(shell, cyl(7.3, 0.4, mat.black, -1.6), box(1.6, 1.3, 0.2, mat.metal, 0, -5.9, -1.1));
+          for (const t of [0, 45, 90, 135, 180]) { const pin = cyl(0.6, 0.1, M('#555', 0.6, 0.4), -1.2); pin.position.x = 3.6*Math.cos(t*Math.PI/180); pin.position.y = 3.6*Math.sin(t*Math.PI/180); c.add(pin); }
+          break; }
         case 'button': c.add(cyl(it.d/2 + 1.2, 2, mat.metal), cyl(it.d/2, 4.5, col)); break;
-        case 'bigbutton': c.add(cyl(9.5, 2.6, mat.gloss, 0, 64, 9.1), cyl(6.6, 2.9, mat.black), cyl(6.25, 3.6, col)); break;
+        case 'bigbutton': { const k = it.d/15; c.add(cyl(9.5*k, 2.6, mat.gloss, 0, 64, 9.1*k), cyl(6.6*k, 2.9, mat.black), cyl(6.25*k, 3.6, col)); break; }
       }
       c.position.set(cx, cy, 0); g.add(c);
     }
@@ -860,25 +996,36 @@ document.fonts.ready.then(() => view !== '3d' && paint()); // redessiner quand l
   b.onclick = () => { $('hp').value = n; $('hp').oninput(); };
   $('hpchips').append(b);
 });
-const PALETTE = [
-  ...PRESETS.map(([name, d, label, kind, color = '#e22222']) => [name, () => ({type:'hole', kind, d, label, size:2.5, ...(COLORED.includes(kind) ? {color} : {})})]),
-  ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})],
-  ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})]];
+const hole = (d, label, kind, color = '#e22222') => () => ({type:'hole', kind, d, label, size:2.5, ...(COLORED.includes(kind) ? {color} : {}), ...(kind === 'toggle' ? {pos:'up'} : {})});
+const GROUPS = [
+  ['Entrées / sorties', [['Jack 3,5 mm', hole(6, 'IN', 'jack')], ['Jack 6,35 mm', hole(9.5, 'OUT', 'jack635')], ['MIDI DIN', hole(15.5, 'MIDI IN', 'midi')], ['Alim. DC', hole(11, '12 V DC', 'dc')]]],
+  ['Contrôles', [['Pot 9 mm', hole(7, 'LEVEL', 'pot9')], ['Pot 16 mm', hole(7.5, 'FREQ', 'pot16')], ['Encodeur', hole(7, '', 'encoder')], ['Fader 30 mm', () => ({type:'rect', kind:'fader', w:2, h:35, r:1})],
+                 ['Inter. à levier', hole(6.2, '', 'toggle')], ['Inter. on/off', () => ({type:'rect', kind:'rocker', w:9.5, h:13, r:0.5})], ['Bouton poussoir', hole(7.2, '', 'button')],
+                 ['Bouton moyen 11,5 mm', hole(11.5, '', 'bigbutton', '#2d7bff')], ['Gros bouton 15 mm', hole(15, '', 'bigbutton', '#f2c200')]]],
+  ['Voyants et affichage', [['LED 3 mm', hole(3.1, '', 'led')], ['LED 5 mm', hole(5.1, '', 'led')], ['LED rect. RGB', () => ({type:'rect', kind:'rled', w:5, h:2.5, r:0.3})], ['Barre de LED', () => ({type:'bar', n:8, pitch:5, d:3.1, vertical:true})],
+                            ['VU-mètre', () => ({type:'rect', kind:'vu', w:35, h:28, r:1.5})], ['Écran OLED', () => ({type:'rect', kind:'oled', w:24, h:13, r:0.5})]]],
+  ['Découpe et gravure', [['Trou libre', hole(4, '', 'hole')], ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})], ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})]]]];
+const PALETTE = GROUPS.flatMap(([, list]) => list);
 function place(make, x, y) {
   add({...make(), x:snap(x), y:snap(y)});
   if (state.items.length === 1) $('secPanel').open = false; // premier ajout : panneau réglé, on replie
 }
-PALETTE.forEach(([name, make], k) => {
-  const t = document.createElement('div'), it = {...make(), x:0, y:0};
-  t.className = 'tile'; t.draggable = true;
-  const art = it.type === 'hole' ? realSvg(it, -1)
-    : it.type === 'rect' ? '<rect x="-6" y="-4" width="12" height="8" fill="#0b0d10"/>'
-    : '<text x="0" y="2.5" font-size="7" font-weight="bold" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
-  t.innerHTML = `<svg viewBox="-10 -10 20 20">${art}</svg>${name}`;
-  t.onclick = () => place(make, W()/2, H()/2);
-  t.ondragstart = e => e.dataTransfer.setData('text/plain', k);
-  $('presets').append(t);
-});
+{ let k = 0;
+  for (const [title, list] of GROUPS) {
+    const hd = document.createElement('div'); hd.className = 'palh'; hd.textContent = title; $('presets').append(hd);
+    for (const [name, make] of list) {
+      const t = document.createElement('div'), it = {...make(), x:0, y:0}, idx = k++;
+      t.className = 'tile'; t.draggable = true;
+      const art = it.type === 'hole' ? realSvg(it, -1) : it.type === 'rect' ? realRect(it, -1) : it.type === 'bar' ? realBar(it, -1)
+        : '<text x="0" y="2.5" font-size="7" font-weight="bold" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
+      const e = Math.max(10, it.type === 'rect' ? Math.max(it.w, it.h)/2 + 3 : it.type === 'bar' ? (it.n - 1)*it.pitch/2 + it.d : 0); // vignette à l'échelle de l'objet
+      t.innerHTML = `<svg viewBox="${-e} ${-e} ${2*e} ${2*e}">${art}</svg>${name}`;
+      t.onclick = () => place(make, W()/2, H()/2);
+      t.ondragstart = ev => ev.dataTransfer.setData('text/plain', idx);
+      $('presets').append(t);
+    }
+  }
+}
 { const t = document.createElement('div');
   t.className = 'tile';
   t.innerHTML = '<svg viewBox="-10 -10 20 20"><path d="M-6 5L-1 -2L2 2L4 0L7 5Z" fill="#888"/><circle cx="3" cy="-4" r="2" fill="#bbb"/></svg>Logo';
