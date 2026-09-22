@@ -28,12 +28,19 @@
   #hpchips button { padding:2px 6px; font-size:12px; min-width:30px; }
   #hpchips button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
 
+  .palgrp { border:0; padding:0; }
+  .palgrp summary { font-size:11px; margin:8px 0 4px; }
   .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
   .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
   .palh { grid-column:1/-1; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0; }
   .tile:hover { border-color:var(--acc); background:#fff; }
   .tile svg { width:44px; height:44px; display:block; margin:0 auto 2px; pointer-events:none; }
 
+  .prow { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap; }
+  .prow label { flex:1; min-width:90px; margin:0; gap:4px; }
+  .prow label input:not([type=checkbox]), .prow label select { flex:1; width:100%; min-width:0; }
+  .prow > button { margin:0; padding:4px 7px; }
+  .prow .caps { width:100%; }
   .caps { display:flex; gap:6px; margin:4px 0 8px; }
   .caps button { flex:1; margin:0; padding:4px 2px; font-size:11px; border:1px solid var(--line); border-radius:6px; background:#fafafa; }
   .caps button.on { border-color:var(--acc); background:#fff; box-shadow:0 0 0 1px var(--acc); }
@@ -118,11 +125,14 @@
     <option value="auto">auto</option><option value="1">1 (centré)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
   </select></label>
   <div class="info">Trous M3 : Ø 3,2 mm oblongs (+2 mm), à 3 mm des bords haut/bas et 7,5 mm du bord.</div>
+  <label>Vis de fixation <select id="screw">
+    <option value="cruci">Cruciforme</option><option value="bombee">Cruciforme bombée</option><option value="fraisee">Fraisée à fleur, six pans</option><option value="chc">Tête cylindrique, six pans</option>
+  </select></label>
   <label>Police par défaut <span id="font"></span></label>
   </details>
 
   <details open><summary>2 · Composants</summary>
-  <div class="pal" id="presets"></div>
+  <div id="presets"></div>
   <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder.</p>
   </details>
 
@@ -153,10 +163,15 @@
   <p class="info">SVG en mm, 1:1. Rouge = découpe, bleu = gravure.</p>
   </details>
 
+  <details><summary>Crédits</summary>
+  <p class="info">Modèles 3D des composants : <a href="https://jolin.tech/componentslibrary" target="_blank" rel="noopener">Jolin</a>, licence CC BY 4.0.</p>
+  </details>
+
   <details><summary>Affichage</summary>
   <label>Grille d'aimantation (mm) <input id="grid" type="number" step="0.01" value="1.27"></label>
   <label>Cotes (cm) <input id="cotes" type="checkbox" checked></label>
   <label>Zones des rails <input id="rails" type="checkbox" checked></label>
+  <label>Modèles 3D détaillés <input id="detail" type="checkbox" checked></label>
   <label id="zoomRow">Zoom <input id="zoom" type="range" min="2" max="10" step="0.5" value="5"></label>
   </details>
 
@@ -213,6 +228,7 @@ const REAL_DEFS = `<defs>
   <linearGradient id="rgb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b6b"/><stop offset=".5" stop-color="#b44dff"/><stop offset="1" stop-color="#3bb6ff"/></linearGradient>
   <linearGradient id="rocker" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4a4a"/><stop offset=".5" stop-color="#262626"/><stop offset=".5" stop-color="#101010"/><stop offset="1" stop-color="#1c1c1c"/></linearGradient>
   <radialGradient id="concave" cx=".5" cy=".45" r=".55"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".35"/></radialGradient>
+  <radialGradient id="dome" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#cfd2d6"/><stop offset=".8" stop-color="#8b8f95"/><stop offset="1" stop-color="#5f6368"/></radialGradient>
   <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient>
   <radialGradient id="metal" cx=".35" cy=".3"><stop offset="0" stop-color="#fafafa"/><stop offset=".6" stop-color="#b8bbbf"/><stop offset="1" stop-color="#7d8186"/></radialGradient>
   <radialGradient id="knob" cx=".4" cy=".3"><stop offset="0" stop-color="#555"/><stop offset=".7" stop-color="#1e1e1e"/><stop offset="1" stop-color="#0a0a0a"/></radialGradient>
@@ -242,7 +258,7 @@ const FONTS = {
 const $ = id => document.getElementById(id);
 const svg = $('view');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const newState = () => ({ id:uid(), name:'', fmt:'3u', hp:8, w:null, nholes:'auto', font:'inter', items:[] });
+const newState = () => ({ id:uid(), name:'', fmt:'3u', hp:8, w:null, nholes:'auto', screw:'cruci', font:'inter', items:[] });
 let state = newState();
 let sel = null;
 let view = 'plan'; // 'plan' | 'real' | '3d'
@@ -489,6 +505,21 @@ function zoom() {
 }
 addEventListener('resize', () => { clearTimeout(zoom.t); zoom.t = setTimeout(render, 150); });
 
+// Vis de fixation vues de face (aperçu réaliste) : tête M3 Ø5,5 à 5,8 mm
+const SCREWS = ['cruci', 'bombee', 'fraisee', 'chc'];
+function screwSvg(x, y) {
+  const hexa = r => `<polygon points="${[0,1,2,3,4,5].map(k => `${x + r*Math.cos(k*Math.PI/3)},${y + r*Math.sin(k*Math.PI/3)}`).join(' ')}" fill="#1a1a1a" stroke="#000" stroke-width="0.1"/>`;
+  const cross = w => `<path d="M${x-1.4} ${y}H${x+1.4}M${x} ${y-1.4}V${y+1.4}" stroke="#444" stroke-width="${w}" stroke-linecap="round"/>`;
+  switch (state.screw) {
+    case 'bombee': return `<circle cx="${x}" cy="${y}" r="2.8" fill="url(#dome)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>` + cross(0.5)
+      + `<circle cx="${x - 0.8}" cy="${y - 0.9}" r="0.6" fill="#fff" fill-opacity=".7"/>`;
+    case 'fraisee': return `<circle cx="${x}" cy="${y}" r="2.9" fill="url(#lever)" stroke="#8a8d91" stroke-width="0.2"/>` + hexa(1.15); // à fleur : pas d'ombre
+    case 'chc': return `<circle cx="${x}" cy="${y}" r="2.75" fill="url(#metal)" stroke="#555" stroke-width="0.12" filter="url(#shadow)"/>`
+      + `<circle cx="${x}" cy="${y}" r="2.35" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="0.2"/>` + hexa(1.3);
+    default: return `<circle cx="${x}" cy="${y}" r="2.8" fill="url(#metal)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>` + cross(0.45);
+  }
+}
+
 let REAL = false, GUIDES = false; // pendant le dessin : aperçu réaliste / repères d'écran (jamais dans l'export)
 function panelSvg(guides) {
   const w = W(), h = H();
@@ -501,8 +532,7 @@ function panelSvg(guides) {
       <feFlood flood-color="${PANEL[$('pcol').value].ink}"/><feComposite in2="mask" operator="in"/>
     </filter></defs>`;
     s += `<rect x="0" y="0" width="${w}" height="${h}" fill="${PANEL[$('pcol').value].fill}" stroke="#888" stroke-width="0.15"/>`;
-    s += mountHoles().map(p => `<circle cx="${p.x}" cy="${p.y}" r="2.8" fill="url(#metal)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>`
-      + `<path d="M${p.x-1.4} ${p.y}H${p.x+1.4}M${p.x} ${p.y-1.4}V${p.y+1.4}" stroke="#555" stroke-width="0.45"/>`).join('');
+    s += mountHoles().map(p => screwSvg(p.x, p.y)).join('');
     return s + state.items.map(itemSvg).join('') + issuesSvg() + dimsSvg();
   }
   let s = `<rect x="0" y="0" width="${w}" height="${h}" fill="${guides ? '#e8e8e8' : 'none'}" stroke="#f00" stroke-width="0.1"/>`;
@@ -555,22 +585,26 @@ function render() {
 function renderProps() {
   const it = state.items[sel], p = $('props');
   if (!it) { p.innerHTML = 'Clique sur un élément.'; return; }
-  const fields = { hole:[['x','X'],['y','Y'],['rot','Rotation (°)'],['d','Ø'],['label','Étiquette','text'],['font','Police','font'],['size','Taille étiquette'],
-                         ...(COLORED.includes(it.kind) ? [['color','Couleur','color']] : []),
-                         ...(KNOBS.includes(it.kind) ? [['cap','Capuchon','cap']] : []),
-                         ...(it.kind === 'toggle' ? [['pos','Levier','select', [['up','Haut'], ['mid','Milieu'], ['down','Bas']]]] : [])],
-                   bar:[['x','X centre'],['y','Y centre'],['rot','Rotation (°)'],['n','Nombre de LED'],['pitch','Pas (mm)'],['d','Ø'],['vertical','Vertical','checkbox']],
-                   rect:[['x','X centre'],['y','Y centre'],['rot','Rotation (°)'],['w','Largeur'],['h','Hauteur'],['r','Rayon coins']],
-                   text:[['x','X'],['y','Y'],['rot','Rotation (°)'],['text','Texte','text'],['font','Police','font'],['size','Taille'],['bold','Gras','checkbox']],
-                   logo:[['x','X centre'],['y','Y centre'],['rot','Rotation (°)'],['w','Largeur (mm)']] }[it.type];
-  p.innerHTML = fields.map(([k, l, t, opts]) => t === 'select'
+  // Lignes de propriétés : les champs liés (X/Y, largeur/hauteur…) tiennent sur une seule ligne
+  const rows = { hole:[[['x','X'],['y','Y']], [['rot','Rotation (°)','rot']], [['d','Ø'],['size','Taille étiq.']], [['label','Étiquette','text']], [['font','Police','font']],
+                       ...(COLORED.includes(it.kind) ? [[['color','Couleur','color']]] : []),
+                       ...(it.kind === 'toggle' ? [[['pos','Levier','select', [['up','Haut'], ['mid','Milieu'], ['down','Bas']]]]] : []),
+                       ...(KNOBS.includes(it.kind) ? [[['cap','Capuchon','cap']]] : [])],
+                 bar:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['n','Nombre'],['pitch','Pas (mm)']], [['d','Ø'],['vertical','Vertical','checkbox']]],
+                 rect:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['w','Largeur'],['h','Hauteur']], [['r','Rayon coins']]],
+                 text:[[['x','X'],['y','Y']], [['rot','Rotation (°)','rot']], [['text','Texte','text']], [['font','Police','font']], [['size','Taille'],['bold','Gras','checkbox']]],
+                 logo:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['w','Largeur (mm)']]] }[it.type];
+  const field = ([k, l, t, opts]) => t === 'select'
     ? `<label>${l} <select data-k="${k}">${opts.map(([v, n]) => `<option value="${v}"${it[k] === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`
     : t === 'cap'
     ? `<div>${l}</div><div class="caps">${Object.entries(CAPS).map(([id, c]) => `<button type="button" data-cap="${id}" class="${(it.cap || '') === id ? 'on' : ''}"><svg viewBox="-14 -14 28 28">${realSvg({...it, cap:id, x:0, y:0}, -1)}</svg>${c.name}</button>`).join('')}</div>`
     : t === 'font'
     ? `<label>${l} <span data-fp="${k}"></span></label>`
-    : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`).join('')
-    + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button><button id="r90" title="Tourner de 90° (touche R)">↻ 90°</button></div>`;
+    : t === 'rot'
+    ? `<label>${l} <input data-k="${k}" type="number" step="5" value="${esc(it[k] ?? 0)}"></label><button data-rot="-90" title="Tourner à gauche">↺</button><button data-rot="90" title="Tourner à droite (touche R)">↻</button>`
+    : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`;
+  p.innerHTML = rows.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
+    + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button></div>`;
   p.querySelectorAll('input, select[data-k]').forEach(inp => {
     inp.oninput = () => {
       const k = inp.dataset.k;
@@ -583,7 +617,7 @@ function renderProps() {
   p.querySelectorAll('[data-fp]').forEach(el => el.replaceWith(fontPicker(it.font || '', id => { it.font = id; paint(); commit(); }, true, it.text || it.label)));
   $('del').onclick = del; $('dup').onclick = dup;
   $('cx').onclick = () => { it.x = +(W()/2).toFixed(2); render(); };
-  $('r90').onclick = () => rotate(90);
+  p.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => rotate(+b.dataset.rot));
 }
 
 // Sélecteur de police maison : un <select> natif n'affiche pas les options dans leur police sur macOS
@@ -692,6 +726,7 @@ function normalize(raw) {
   s.hp = Math.round(num(raw.hp, 8, 1, 104));
   s.w = raw.w == null ? null : num(raw.w, null, 1, 600);
   s.nholes = ['auto', '1', '2', '3', '4'].includes(String(raw.nholes)) ? String(raw.nholes) : 'auto';
+  if (SCREWS.includes(raw.screw)) s.screw = raw.screw;
   if (FONTS[raw.font]) s.font = raw.font;
   s.items = (Array.isArray(raw.items) ? raw.items : []).map(normItem).filter(Boolean);
   return s;
@@ -759,7 +794,7 @@ $('file').onchange = async () => {
 };
 
 function syncInputs() {
-  for (const k of ['fmt', 'hp', 'nholes', 'name']) $(k).value = state[k];
+  for (const k of ['fmt', 'hp', 'nholes', 'name', 'screw']) $(k).value = state[k];
   mountFontPicker();
 }
 
@@ -800,6 +835,25 @@ $('exSvg').onclick = async () => {
 };
 
 // ---------- Vue 3D (three.js, chargé à la première ouverture) ----------
+
+// Modèles 3D réels (Jolin, CC BY 4.0) : mètres, axe du composant sur +Y ; chargés à la demande
+const MODELS = { jack:{f:'jack', z:-10.9}, pot9:{f:'pot9_body', z:-6.3}, pot16:{f:'pot16_body', z:-3.6},
+                 toggle:{f:'toggle', z:-6.6}, button:{f:'button', z:-12.9} };
+const CAP_MODELS = { '':{f:'knob_std', d:15.66, h:14.6}, alu9:{f:'knob_alu9', d:8, h:14}, jupe27:{f:'knob_jupe27', d:18.8, h:14.7} }; // sommet du bouton en Y=0 : à retourner
+const modelCache = {};
+let GLTF = null;
+async function loadModel(name) {
+  GLTF ??= (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
+  modelCache[name] ??= new GLTF().loadAsync(`models/${name}.glb`).then(g => g.scene);
+  return (await modelCache[name]).clone(true);
+}
+// Pose un modèle : mm, axe +Y du modèle vers l'avant de la plaque (+Z)
+async function modelPart(name, zOff, scale = 1, flip = false) {
+  const o = await loadModel(name), g = new V3.T.Group();
+  o.scale.setScalar(1000*scale); o.position.z = zOff*scale; o.rotation.x = (flip ? -1 : 1)*Math.PI/2;
+  o.traverse(m => { if (m.isMesh) m.castShadow = m.receiveShadow = true; });
+  g.add(o); return g;
+}
 
 let V3 = null;
 async function init3d() {
@@ -922,7 +976,13 @@ async function build3d() {
     // Vis de fixation
     for (const m of mountHoles()) {
       const [cx, cy] = P(m.x, m.y), s = new T.Group();
-      s.add(cyl(2.8, 1.1, mat.metal, 0, 32, 2.6), box(2.8, 0.5, 0.3, mat.dark, 0, 0, 1.05), box(0.5, 2.8, 0.3, mat.dark, 0, 0, 1.05));
+      const cross = z => [box(2.8, 0.5, 0.4, mat.dark, 0, 0, z), box(0.5, 2.8, 0.4, mat.dark, 0, 0, z)];
+      if (state.screw === 'bombee') { // calotte : base Ø5,6, hauteur 1,5 mm
+        const R = (2.8**2 + 1.5**2) / 3, dome = mesh(new T.SphereGeometry(R, 32, 16, 0, Math.PI*2, 0, Math.asin(2.8/R)), mat.metal);
+        dome.rotation.x = Math.PI/2; dome.position.z = 1.5 - R; s.add(dome, ...cross(1.35));
+      } else if (state.screw === 'fraisee') s.add(cyl(2.9, 0.06, mat.metal), cyl(1.15, 0.08, mat.dark, 0.01, 6)); // à fleur de la plaque
+      else if (state.screw === 'chc') s.add(cyl(2.75, 3, mat.metal, 0, 40, 2.55), cyl(1.3, 0.08, mat.dark, 2.97, 6));
+      else s.add(cyl(2.8, 1.1, mat.metal, 0, 32, 2.6), ...cross(1.05));
       s.position.set(cx, cy, 0); g.add(s);
     }
 
@@ -944,6 +1004,14 @@ async function build3d() {
       }
       if (it.type === 'rect' && it.kind) {
         const [cx, cy] = P(it.x, it.y), c = new T.Group();
+        if (it.kind === 'fader' && $('detail').checked) {
+          try { // fader réel (course 45 mm) mis à l'échelle de la fente
+            const long = Math.max(it.w, it.h), part = await modelPart('fader', -7.6, long/45);
+            if (it.h >= it.w) part.rotation.z = Math.PI/2;
+            c.add(part); c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+            continue;
+          } catch (err) { msg('Modèle 3D indisponible, dessin simplifié utilisé'); }
+        }
         if (it.kind === 'fader') {
           c.add(box(1.2, 1.2, 1.5, mat.dark, 0, 0, 0.25), box(9, 12, 7, mat.black, 0, 0, 4.5), box(8, 0.5, 0.1, mat.white, 0, 0, 8.05),
                 ...[-3.5, -2.3, 2.3, 3.5].map(o => box(7.2, 0.35, 0.1, mat.dark, 0, o, 8.05)));
@@ -959,6 +1027,19 @@ async function build3d() {
       }
       if (it.type !== 'hole') continue;
       const [cx, cy] = P(it.x, it.y), c = new T.Group(), col = M(it.color || '#e22222', 0.05, 0.4);
+      if ($('detail').checked && MODELS[it.kind] && !(it.kind === 'toggle' && it.pos === 'mid')) {
+        try { // modèle réel ; les potentiomètres reçoivent en plus leur bouton
+          const m = MODELS[it.kind], part = await modelPart(m.f, m.z);
+          if (it.kind === 'toggle' && it.pos === 'down') part.rotation.z = Math.PI;
+          c.add(part);
+          if (KNOBS.includes(it.kind)) {
+            const cap = CAP_MODELS[it.cap || ''], want = 2*capR(it, it.kind === 'pot16' ? 8.5 : 5.5);
+            c.add(await modelPart(cap.f, cap.h, want/cap.d, true));
+          }
+          c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+          continue;
+        } catch (err) { msg('Modèle 3D indisponible, dessin simplifié utilisé'); } // hors ligne : repli sur les formes simples
+      }
       if (BODY[it.kind]) c.add(box(...BODY[it.kind], 10, M('#2f5d9a', 0.1, 0.5), 0, 0, -thick - 5)); // corps derrière la plaque
       const mark = (y0, len, z) => box(0.5, len, 0.12, mat.white, 0, y0 + len/2, z + 0.06);
       if (KNOBS.includes(it.kind) && it.cap === 'alu9')
@@ -1018,6 +1099,37 @@ document.fonts.ready.then(() => view !== '3d' && paint()); // redessiner quand l
   b.onclick = () => { $('hp').value = n; $('hp').oninput(); };
   $('hpchips').append(b);
 });
+// Banque de symboles à graver (codes électriques + vocabulaire des synthés), dessinés en 24×24
+const SYMBOLS = [
+  ['Masse', 'M12 3v8M6 11h12M8 14.5h8M10 18h4'],
+  ['Terre', 'M12 3v8M5 11h14M6.5 11l-3.5 5M11.5 11l-3.5 5M16.5 11l-3.5 5'],
+  ['Continu', 'M3 9h18M3 15h4M10 15h4M17 15h4'],
+  ['Alternatif', 'M3 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0'],
+  ['Sinus', 'M2 12c2.5-8 5.5-8 8 0s5.5 8 8 0'],
+  ['Carré', 'M2 19V5h7v14h7V5h6'],
+  ['Triangle', 'M2 19l5-14 5 14 5-14 5 14'],
+  ['Dent de scie', 'M2 19l6-14v14l6-14v14l6-14'],
+  ['Bruit', 'M2 12l2-6 2 11 2-9 2 8 2-12 2 13 2-7 2 5 2-4 2 2'],
+  ['Impulsions', 'M2 19V7h4v12h4V7h4v12h4V7h4'],
+  ['Enveloppe', 'M2 19L7 5l3 8v3l9 3'],
+  ['Passe-bas', 'M2 8h10c4.5 0 3.5 11 9 11'],
+  ['Passe-haut', 'M22 8H12C7.5 8 8.5 19 3 19'],
+  ['Passe-bande', 'M2 19c5 0 4-12 10-12s5 12 10 12'],
+  ['Haut-parleur', 'M3 9h4l5-4v14l-5-4H3zM16 9.5a4.5 4.5 0 010 5M19 7a8 8 0 010 10'],
+  ['Casque', 'M4 15v-3a8 8 0 0116 0v3M2 15h4v6H4a2 2 0 01-2-2zM22 15h-4v6h2a2 2 0 002-2z'],
+  ['Jack', 'M9 2h6v7H9zM11 9v7h2V9M12 16v6'],
+  ['Éclair', 'M13 2L5 14h5l-1 8 8-12h-5z'],
+  ['Interrupteur', 'M2 16h4M18 16h4M7 16a1 1 0 102 0 1 1 0 10-2 0M16 16a1 1 0 102 0 1 1 0 10-2 0M8.7 15.1l6.6-3.8'],
+  ['Note', 'M9 19a3 3 0 11-3-3 3 3 0 013 3V5l11-3v11a3 3 0 11-3-3 3 3 0 013 3'],
+  ['Diapason', 'M8 2v9a4 4 0 008 0V2M12 15v7M9 22h6'],
+  ['Horloge', 'M12 3a9 9 0 100 18 9 9 0 000-18M12 7v5l4 3'],
+  ['Attention', 'M12 3L1 21h22zM12 10v5M12 18v.5'],
+  ['Marche/arrêt', 'M12 3v9M6.5 6.5a8 8 0 1011 0'],
+  ['Spaghetti', 'M2 18c4-9 7 4 11-4s5 7 9 1M4 22c5-6 9 2 16-4'],
+  ['Smiley patché', 'M12 2a10 10 0 100 20 10 10 0 000-20M8 9v.5M16 9v.5M7 14c2 4 8 4 10 0'],
+  ['Chat modulaire', 'M4 21l2-14 4.5 3.5h3L18 7l2 14zM9.5 14v.5M14.5 14v.5M12 17l-1.5 1.5M12 17l1.5 1.5'],
+];
+const symbolItem = d => ({type:'logo', svg:`<g fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></g>`, vb:'0 0 24 24', ratio:1, w:12});
 const hole = (d, label, kind, color = '#e22222') => () => ({type:'hole', kind, d, label, size:2.5, ...(COLORED.includes(kind) ? {color} : {}), ...(kind === 'toggle' ? {pos:'up'} : {})});
 const GROUPS = [
   ['Entrées / sorties', [['Jack 3,5 mm', hole(6, 'IN', 'jack')], ['Jack 6,35 mm', hole(9.5, 'OUT', 'jack635')], ['MIDI DIN', hole(15.5, 'MIDI IN', 'midi')], ['Alim. DC', hole(11, '12 V DC', 'dc')]]],
@@ -1027,6 +1139,7 @@ const GROUPS = [
                  ['Bouton d\'arcade', hole(27, '', 'arcade', '#e8232b')]]],
   ['Voyants et affichage', [['LED 3 mm', hole(3.1, '', 'led')], ['LED 5 mm', hole(5.1, '', 'led')], ['LED rect. RGB', () => ({type:'rect', kind:'rled', w:5, h:2.5, r:0.3})], ['Barre de LED', () => ({type:'bar', n:8, pitch:5, d:3.1, vertical:true})],
                             ['VU-mètre', () => ({type:'rect', kind:'vu', w:35, h:28, r:1.5})], ['Écran OLED', () => ({type:'rect', kind:'oled', w:24, h:13, r:0.5})]]],
+  ['Symboles à graver', SYMBOLS.map(([name, d]) => [name, () => symbolItem(d)])],
   ['Découpe et gravure', [['Trou libre', hole(4, '', 'hole')], ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})], ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})]]]];
 const PALETTE = GROUPS.flatMap(([, list]) => list);
 function place(make, x, y) {
@@ -1035,17 +1148,21 @@ function place(make, x, y) {
 }
 { let k = 0;
   for (const [title, list] of GROUPS) {
-    const hd = document.createElement('div'); hd.className = 'palh'; hd.textContent = title; $('presets').append(hd);
+    const grp = document.createElement('details'); grp.className = 'palgrp'; grp.open = !title.startsWith('Symboles');
+    grp.innerHTML = `<summary>${title}</summary><div class="pal"></div>`;
+    $('presets').append(grp);
+    const box = grp.querySelector('.pal');
     for (const [name, make] of list) {
       const t = document.createElement('div'), it = {...make(), x:0, y:0}, idx = k++;
       t.className = 'tile'; t.draggable = true;
       const art = it.type === 'hole' ? realSvg(it, -1) : it.type === 'rect' ? realRect(it, -1) : it.type === 'bar' ? realBar(it, -1)
+        : it.type === 'logo' ? `<g transform="translate(-8 -8) scale(0.667)">${it.svg}</g>`
         : '<text x="0" y="2.5" font-size="7" font-weight="bold" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
       const e = Math.max(10, it.type === 'rect' ? Math.max(it.w, it.h)/2 + 3 : it.type === 'bar' ? (it.n - 1)*it.pitch/2 + it.d : 0); // vignette à l'échelle de l'objet
       t.innerHTML = `<svg viewBox="${-e} ${-e} ${2*e} ${2*e}">${art}</svg>${name}`;
       t.onclick = () => place(make, W()/2, H()/2);
       t.ondragstart = ev => ev.dataTransfer.setData('text/plain', idx);
-      $('presets').append(t);
+      box.append(t);
     }
   }
 }
@@ -1087,11 +1204,11 @@ svg.ondrop = e => {
 
 // Réglages du panneau
 const bind = (id, k, num = true) => $(id).oninput = () => { state[k] = num ? +$(id).value : $(id).value; if (k === 'hp') state.w = null; render(); };
-bind('fmt', 'fmt', false); bind('hp', 'hp'); bind('nholes', 'nholes', false);
+bind('fmt', 'fmt', false); bind('hp', 'hp'); bind('nholes', 'nholes', false); bind('screw', 'screw', false);
 $('w').oninput = () => { state.w = +$('w').value || null; paint(); };
 $('w').onchange = render;
 $('name').oninput = () => { state.name = $('name').value; clearTimeout($('name').t); $('name').t = setTimeout(commit, 500); };
-$('rails').oninput = render; $('cotes').oninput = render; $('grid').oninput = render; $('zoom').oninput = render; $('pcol').oninput = () => paint();
+$('detail').oninput = render; $('rails').oninput = render; $('cotes').oninput = render; $('grid').oninput = render; $('zoom').oninput = render; $('pcol').oninput = () => paint();
 function setView(v) {
   view = v;
   for (const [id, m] of [['vPlan', 'plan'], ['vReal', 'real'], ['v3d', '3d']]) $(id).classList.toggle('on', v === m);

@@ -6,7 +6,8 @@ Dessinez les faces avant de vos modules Eurorack directement dans le navigateur,
 - jacks 3,5 et 6,35 mm, MIDI DIN, alimentation DC, potentiomètres (capuchons au choix), encodeurs, faders, inverseurs, interrupteurs on/off, boutons, LED, barres de LED, VU-mètre, écran OLED, découpes, textes, logos SVG/PNG, à glisser-déposer avec aimantation et rotation ;
 - alertes de chevauchement, y compris l'encombrement des composants derrière la plaque ;
 - 14 polices, dont plusieurs au style des synthés vintage ;
-- aperçu réaliste et vue 3D (aluminium, noir, blanc ou MDF) ;
+- aperçu réaliste et vue 3D (aluminium, noir, blanc ou MDF), avec les modèles 3D réels des composants ;
+- banque de symboles à graver (masse, formes d'onde, filtres, jack, casque…) ;
 - bibliothèque de modules, import/export en .json, annuler/rétablir ;
 - export SVG 1:1 en mm pour la découpe et la gravure laser (textes convertis en tracés).
 
@@ -15,3 +16,7 @@ Dessinez les faces avant de vos modules Eurorack directement dans le navigateur,
 Une seule page HTML, sans installation ni serveur. Pour la modifier, forkez le dépôt et éditez `index.html`.
 
 Licence MIT.
+
+## Crédits
+
+Les modèles 3D des composants (dossier `models/`) proviennent de la bibliothèque [Jolin](https://jolin.tech/componentslibrary), sous licence CC BY 4.0. Ils ont été convertis et allégés pour le web.
