@@ -30,6 +30,9 @@
 
   .palgrp { border:0; padding:0; }
   .palgrp summary { font-size:11px; margin:8px 0 4px; }
+  #iconq { width:100%; margin:8px 0 4px; padding:5px 7px; }
+  #iconres { max-height:260px; overflow:auto; }
+  #iconres .tile svg { width:30px; height:30px; }
   .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
   .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
   .palh { grid-column:1/-1; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0; }
@@ -119,7 +122,7 @@
   </select></label>
   <label>Largeur (HP) <input id="hp" type="number" min="1" max="104" value="8"></label>
   <div id="hpchips"></div>
-  <label>Largeur réelle (mm) <input id="w" type="number" step="0.01"></label>
+  <label>Largeur réelle (mm) <input id="w" type="number" step="0.1"></label>
   <div class="info" id="winfo"></div>
   <label>Trous par rail <select id="nholes">
     <option value="auto">auto</option><option value="1">1 (centré)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
@@ -133,6 +136,10 @@
 
   <details open><summary>2 · Composants</summary>
   <div id="presets"></div>
+  <div id="iconbox">
+    <input id="iconq" type="search" placeholder="Chercher une icône (1 600 icônes Lucide)…">
+    <div class="pal" id="iconres"></div>
+  </div>
   <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder (avec Maj = image de référence à décalquer).</p>
   </details>
 
@@ -169,13 +176,14 @@
   <details><summary>Crédits</summary>
   <p class="info">Modèles 3D des composants : <a href="https://jolin.tech/componentslibrary" target="_blank" rel="noopener">Jolin</a>, licence CC BY 4.0.<br>
   Banque de données des modules du commerce (largeurs en HP, profondeurs, visuels de panneaux) : <a href="https://modulargrid.net/" target="_blank" rel="noopener">ModularGrid</a> — consultation manuelle, aucune récupération automatique.<br>
+  Icônes de la recherche : <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a>, licence ISC.<br>
   Cotes du format : Doepfer A-100, <a href="https://www.exploding-shed.com/synth-diy-guides/standards-of-eurorack/eurorack-dimensions/" target="_blank" rel="noopener">Exploding Shed</a>.</p>
   </details>
 
   <details><summary>Image de référence</summary>
   <div class="row"><button id="bgPick">Choisir une image…</button><button id="bgDel">Retirer</button></div>
-  <div class="prow"><label>Largeur (mm) <input id="bgW" type="number" step="0.5" value="40"></label><label>Opacité <input id="bgO" type="range" min="5" max="100" value="35"></label></div>
-  <div class="prow"><label>X <input id="bgX" type="number" step="0.5" value="0"></label><label>Y <input id="bgY" type="number" step="0.5" value="0"></label></div>
+  <div class="prow"><label>Largeur (mm) <input id="bgW" type="number" step="1" value="40"></label><label>Opacité <input id="bgO" type="range" min="5" max="100" value="35"></label></div>
+  <div class="prow"><label>X <input id="bgX" type="number" step="1" value="0"></label><label>Y <input id="bgY" type="number" step="1" value="0"></label></div>
   <p class="info">Pour décalquer un agencement (capture ModularGrid, photo, scan). Affichée au dos du plan, jamais exportée ni enregistrée avec le module : elle disparaît au rechargement.</p>
   <input id="bgfile" type="file" accept="image/*" hidden>
   </details>
@@ -621,8 +629,8 @@ function renderProps() {
     : t === 'font'
     ? `<label>${l} <span data-fp="${k}"></span></label>`
     : t === 'rot'
-    ? `<label>${l} <input data-k="${k}" type="number" step="5" value="${esc(it[k] ?? 0)}"></label><button data-rot="-90" title="Tourner à gauche">↺</button><button data-rot="90" title="Tourner à droite (touche R)">↻</button>`
-    : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`;
+    ? `<label>${l} <input data-k="${k}" type="number" step="1" value="${esc(it[k] ?? 0)}"></label><button data-rot="-90" title="Tourner à gauche">↺</button><button data-rot="90" title="Tourner à droite (touche R)">↻</button>`
+    : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="1" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`;
   p.innerHTML = rows.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
     + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button></div>`;
   p.querySelectorAll('input, select[data-k]').forEach(inp => {
@@ -1250,6 +1258,48 @@ function place(make, x, y) {
   t.innerHTML = '<svg viewBox="-10 -10 20 20"><path d="M-6 5L-1 -2L2 2L4 0L7 5Z" fill="#888"/><circle cx="3" cy="-4" r="2" fill="#bbb"/></svg>Logo';
   t.onclick = () => $('logofile').click();
   $('presets').append(t); }
+
+// Recherche d'icônes Lucide (ISC), index et dessins chargés à la demande depuis le CDN
+const FR_EN = {onde:'wave', son:'audio volume', casque:'headphones', éclair:'zap', eclair:'zap', alimentation:'power', horloge:'clock', filtre:'filter',
+  micro:'mic', curseur:'sliders', bouton:'toggle', musique:'music', note:'music', batterie:'battery', ampoule:'lightbulb', coeur:'heart', cœur:'heart',
+  étoile:'star', etoile:'star', fleche:'arrow', flèche:'arrow', maison:'home', poubelle:'trash', ciseaux:'scissors', clé:'key wrench', cle:'key wrench',
+  aléatoire:'shuffle random dice', aleatoire:'shuffle random dice', dé:'dice', cadenas:'lock', oeil:'eye', œil:'eye', chat:'cat', crâne:'skull', crane:'skull',
+  fantôme:'ghost', fantome:'ghost', feu:'flame', goutte:'droplet', vague:'waves', radio:'radio', antenne:'antenna', prise:'plug', câble:'cable', cable:'cable',
+  enceinte:'speaker', 'haut-parleur':'speaker', usb:'usb', puce:'cpu chip', circuit:'circuit board', ordinateur:'computer', clavier:'keyboard piano'};
+let iconIndex = null;
+async function iconSearch(q) {
+  const res = $('iconres');
+  if (!q.trim()) { res.innerHTML = ''; return; }
+  if (!iconIndex) {
+    res.innerHTML = '<p class="info">Chargement de la liste…</p>';
+    try { iconIndex = Object.entries(await (await fetch('https://cdn.jsdelivr.net/npm/lucide-static@latest/tags.json')).json()); }
+    catch { res.innerHTML = '<p class="info">Liste indisponible (connexion ?)</p>'; return; }
+  }
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean).flatMap(t => [t, ...(FR_EN[t] ? FR_EN[t].split(' ') : [])]);
+  const hits = iconIndex.filter(([name, tags]) => terms.some(t => name.includes(t) || tags.some(g => g.includes(t)))).slice(0, 36);
+  res.innerHTML = hits.length ? '' : '<p class="info">Aucune icône trouvée (les mots-clés sont surtout en anglais)</p>';
+  for (const [name] of hits) {
+    const t = document.createElement('div'); t.className = 'tile'; t.title = name;
+    t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></svg>${name.replace(/-/g, ' ')}`;
+    t.onclick = () => addIcon(name);
+    res.append(t);
+    fetch(`https://cdn.jsdelivr.net/npm/lucide-static@latest/icons/${name}.svg`).then(r => r.text()).then(txt => {
+      const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
+      if (doc.querySelector('parsererror')) return;
+      cleanSvg(doc);
+      t.querySelector('svg').innerHTML = doc.documentElement.innerHTML;
+    }).catch(() => {});
+  }
+}
+async function addIcon(name) {
+  try {
+    const doc = new DOMParser().parseFromString(await (await fetch(`https://cdn.jsdelivr.net/npm/lucide-static@latest/icons/${name}.svg`)).text(), 'image/svg+xml');
+    if (doc.querySelector('parsererror')) throw new Error('icône illisible');
+    cleanSvg(doc);
+    place(() => ({type:'logo', svg:`<g fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${doc.documentElement.innerHTML}</g>`, vb:'0 0 24 24', ratio:1, w:12}), W()/2, H()/2);
+  } catch (err) { msg('Icône indisponible : ' + err.message); }
+}
+$('iconq').oninput = () => { clearTimeout($('iconq').t); $('iconq').t = setTimeout(() => iconSearch($('iconq').value), 250); };
 
 // Logo : SVG (nettoyé) ou image raster
 async function loadLogo(file, x = W()/2, y = H()/2) {

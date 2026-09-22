@@ -7,7 +7,7 @@ Dessinez les faces avant de vos modules Eurorack directement dans le navigateur,
 - alertes de chevauchement, y compris l'encombrement des composants derrière la plaque ;
 - 14 polices, dont plusieurs au style des synthés vintage ;
 - aperçu réaliste et vue 3D (aluminium, noir, blanc ou MDF), avec les modèles 3D réels des composants ;
-- banque de symboles à graver (masse, formes d'onde, filtres, jack, casque…) ;
+- banque de symboles à graver (masse, formes d'onde, filtres, jack, casque…) et recherche parmi 1 600 icônes Lucide ;
 - image de référence en filigrane, pour décalquer un agencement existant ;
 - import d'un panneau SVG existant (fabricants open source) converti en éléments modifiables ;
 - bibliothèque de modules, import/export en .json, annuler/rétablir ;
@@ -22,5 +22,7 @@ Licence MIT.
 ## Crédits
 
 Les modèles 3D des composants (dossier `models/`) proviennent de la bibliothèque [Jolin](https://jolin.tech/componentslibrary), sous licence CC BY 4.0. Ils ont été convertis et allégés pour le web.
+
+Les icônes de la recherche viennent de [Lucide](https://lucide.dev) (licence ISC), chargées depuis jsDelivr à la demande.
 
 Pour les caractéristiques des modules du commerce (largeur en HP, profondeur, visuels de panneaux), la référence est [ModularGrid](https://modulargrid.net/) : consultation manuelle, l'application ne fait aucune récupération automatique. Les cotes du format suivent le standard Doepfer A-100.
