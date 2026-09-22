@@ -162,7 +162,7 @@
 
   <details><summary>Raccourcis</summary>
   <p class="info">Glisser : aimanté sur la grille, l'axe central et les autres éléments (Alt = libre).<br>
-  Flèches = déplacer (Maj = ×10) · Suppr = effacer · ⌘D = dupliquer · ⌘Z / ⇧⌘Z = annuler / rétablir · Échap = désélectionner.</p>
+  Flèches = déplacer (Maj = ×10) · R = tourner de 90° (Maj+R = 15°) · Suppr = effacer · ⌘D = dupliquer · ⌘Z / ⇧⌘Z = annuler / rétablir · Échap = désélectionner.</p>
   </details>
 </aside>
 <svg width="0" height="0" style="position:absolute" id="defs"></svg>
@@ -185,17 +185,23 @@ const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80
 const HEIGHTS = {'3u':128.5, ij:39.65, pl:43.18};
 const RAIL = {'3u':10, ij:0, pl:0}; // ponytail: 10 mm de rail en haut/bas en 3U, valeur usuelle, pas de la norme
 const MOUNT = {d:3.2, slot:2, y:3, x:7.5}; // norme Doepfer : M3, 3 mm des bords haut/bas, 7,5 mm du bord gauche
-const KINDS = ['jack', 'jack635', 'midi', 'dc', 'pot9', 'pot16', 'led', 'toggle', 'button', 'bigbutton', 'encoder', 'hole'];
+const KINDS = ['jack', 'jack635', 'midi', 'dc', 'pot9', 'pot16', 'led', 'toggle', 'button', 'bigbutton', 'arcade', 'encoder', 'hole'];
 const RECT_KINDS = ['vu', 'oled', 'fader', 'rled', 'rocker'];
 // Encombrement derrière la plaque (largeur × hauteur, mm), centré sur l'axe : zone inutilisable pour les voisins
 const BODY = { pot9:[12, 15], pot16:[12, 15], encoder:[12, 15] }; // ponytail: mêmes cotes pour tous les pots (donnée utilisateur), à affiner par modèle
-const COLORED = ['led', 'button', 'bigbutton'];
+const COLORED = ['led', 'button', 'bigbutton', 'arcade'];
 // Capuchons de potentiomètre au choix (aperçu seulement : le trou dépend du potentiomètre, pas du capuchon)
 const CAPS = { '':{name:"D'origine"}, alu9:{name:'Alu cranté Ø9', r:4.5}, jupe27:{name:'Jupe Ø27', r:13.5} };
 const KNOBS = ['pot9', 'pot16', 'encoder'];
 const capR = (it, def) => CAPS[it.cap]?.r ?? def;
 // Rayon visible du composant monté (bouton, écrou…) : étiquette au-dessus, cercle de sélection, chevauchements
-const REAL_R = { jack:()=>4, jack635:()=>7, midi:()=>7.75, dc:()=>6.5, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:it=>9.5*it.d/15 };
+const REAL_R = { jack:()=>4, jack635:()=>7, midi:()=>7.75, dc:()=>6.5, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:it=>9.5*it.d/15, arcade:it=>it.d/2 + 3 };
+// Rotation d'un élément autour de son centre (degrés, sens horaire à l'écran comme rotate() en SVG)
+function rotPt(it, px, py, a = it.rot || 0) {
+  if (!a) return [px, py];
+  const t = a*Math.PI/180, dx = px - it.x, dy = py - it.y;
+  return [it.x + dx*Math.cos(t) - dy*Math.sin(t), it.y + dx*Math.sin(t) + dy*Math.cos(t)];
+}
 const footR = it => Math.max(it.d/2, REAL_R[it.kind]?.(it) ?? 0);
 const collR = it => it.kind === 'toggle' ? 4.62 : footR(it); // les leviers pointent tous du même côté : seul l'écrou compte
 const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'}, mdf:{fill:'url(#mdf)', ink:'#3a2212'} }; // MDF : gravure laser = brûlé brun foncé
@@ -206,6 +212,7 @@ const REAL_DEFS = `<defs>
   <linearGradient id="vuface" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf2cf"/><stop offset="1" stop-color="#efd690"/></linearGradient>
   <linearGradient id="rgb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b6b"/><stop offset=".5" stop-color="#b44dff"/><stop offset="1" stop-color="#3bb6ff"/></linearGradient>
   <linearGradient id="rocker" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4a4a"/><stop offset=".5" stop-color="#262626"/><stop offset=".5" stop-color="#101010"/><stop offset="1" stop-color="#1c1c1c"/></linearGradient>
+  <radialGradient id="concave" cx=".5" cy=".45" r=".55"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".35"/></radialGradient>
   <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient>
   <radialGradient id="metal" cx=".35" cy=".3"><stop offset="0" stop-color="#fafafa"/><stop offset=".6" stop-color="#b8bbbf"/><stop offset="1" stop-color="#7d8186"/></radialGradient>
   <radialGradient id="knob" cx=".4" cy=".3"><stop offset="0" stop-color="#555"/><stop offset=".7" stop-color="#1e1e1e"/><stop offset="1" stop-color="#0a0a0a"/></radialGradient>
@@ -315,6 +322,10 @@ function realSvg(it, i) {
     case 'button': s = circ(it.d/2 + 1.2, 'url(#metal)', 'filter="url(#shadow)"') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
     case 'bigbutton': // bague noire brillante Ø19, capuchon plat Ø12,5 (d'après photo)
       { const k = it.d/15; s = circ(9.5*k, 'url(#bezel)', 'filter="url(#shadow)"') + circ(6.6*k, '#0a0a0a') + circ(6.25*k, col) + circ(6.25*k, 'url(#capsheen)'); } break;
+    case 'arcade': { // bouton d'arcade : collerette de la couleur du bouton, poussoir légèrement concave
+      const rb = it.d/2 + 3, rc = it.d/2 - 1.5;
+      s = circ(rb, col, 'filter="url(#shadow)"') + circ(rb, 'url(#capsheen)') + circ(rc + 0.6, '#000', 'fill-opacity=".35"')
+        + circ(rc, col) + `<circle cx="${x}" cy="${y}" r="${rc}" fill="url(#concave)" pointer-events="none"/>`; break; }
     default: s = circ(it.d/2, '#111');
   }
   if (i === sel) s += `<circle cx="${x}" cy="${y}" r="${footR(it) + 1.5}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`;
@@ -413,7 +424,7 @@ function itemSvg(it, i) {
     if (sel === i && GUIDES) // poignées d'angle : 0 haut-gauche, 1 haut-droit, 2 bas-gauche, 3 bas-droit
       s += [0,1,2,3].map(k => `<rect data-h="${k}" x="${(k & 1 ? x0 + it.w : x0) - hs/2}" y="${(k & 2 ? y0 + h : y0) - hs/2}" width="${hs}" height="${hs}" fill="#fff" stroke="#d33" stroke-width="0.25" style="cursor:${k === 0 || k === 3 ? 'nwse' : 'nesw'}-resize"/>`).join('');
   }
-  return s;
+  return it.rot ? `<g transform="rotate(${it.rot} ${it.x} ${it.y})">${s}</g>` : s;
 }
 
 // Cotes en cm autour du panneau + position de l'élément sélectionné (écran seulement)
@@ -452,7 +463,11 @@ function issues() {
   }
   return out;
 }
-const bodyRect = it => { const b = BODY[it.kind]; return it.type === 'hole' && b ? [it.x - b[0]/2, it.y - b[1]/2, b[0], b[1]] : null; };
+const bodyRect = it => { // ponytail: encombrement traité à 0° ou 90° près, suffisant pour des rectangles presque carrés
+  const b = BODY[it.kind]; if (it.type !== 'hole' || !b) return null;
+  const [bw, bh] = Math.abs(Math.sin((it.rot || 0)*Math.PI/180)) > 0.7 ? [b[1], b[0]] : b;
+  return [it.x - bw/2, it.y - bh/2, bw, bh];
+};
 function bodiesSvg() {
   return state.items.map(bodyRect).filter(Boolean).map(([bx, by, bw, bh]) =>
     `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#7a4fd610" stroke="#7a4fd6" stroke-width="0.2" stroke-dasharray="0.8 0.5" pointer-events="none"/>`).join('');
@@ -540,14 +555,14 @@ function render() {
 function renderProps() {
   const it = state.items[sel], p = $('props');
   if (!it) { p.innerHTML = 'Clique sur un élément.'; return; }
-  const fields = { hole:[['x','X'],['y','Y'],['d','Ø'],['label','Étiquette','text'],['font','Police','font'],['size','Taille étiquette'],
+  const fields = { hole:[['x','X'],['y','Y'],['rot','Rotation (°)'],['d','Ø'],['label','Étiquette','text'],['font','Police','font'],['size','Taille étiquette'],
                          ...(COLORED.includes(it.kind) ? [['color','Couleur','color']] : []),
                          ...(KNOBS.includes(it.kind) ? [['cap','Capuchon','cap']] : []),
                          ...(it.kind === 'toggle' ? [['pos','Levier','select', [['up','Haut'], ['mid','Milieu'], ['down','Bas']]]] : [])],
-                   bar:[['x','X centre'],['y','Y centre'],['n','Nombre de LED'],['pitch','Pas (mm)'],['d','Ø'],['vertical','Vertical','checkbox']],
-                   rect:[['x','X centre'],['y','Y centre'],['w','Largeur'],['h','Hauteur'],['r','Rayon coins']],
-                   text:[['x','X'],['y','Y'],['text','Texte','text'],['font','Police','font'],['size','Taille'],['bold','Gras','checkbox']],
-                   logo:[['x','X centre'],['y','Y centre'],['w','Largeur (mm)']] }[it.type];
+                   bar:[['x','X centre'],['y','Y centre'],['rot','Rotation (°)'],['n','Nombre de LED'],['pitch','Pas (mm)'],['d','Ø'],['vertical','Vertical','checkbox']],
+                   rect:[['x','X centre'],['y','Y centre'],['rot','Rotation (°)'],['w','Largeur'],['h','Hauteur'],['r','Rayon coins']],
+                   text:[['x','X'],['y','Y'],['rot','Rotation (°)'],['text','Texte','text'],['font','Police','font'],['size','Taille'],['bold','Gras','checkbox']],
+                   logo:[['x','X centre'],['y','Y centre'],['rot','Rotation (°)'],['w','Largeur (mm)']] }[it.type];
   p.innerHTML = fields.map(([k, l, t, opts]) => t === 'select'
     ? `<label>${l} <select data-k="${k}">${opts.map(([v, n]) => `<option value="${v}"${it[k] === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`
     : t === 'cap'
@@ -555,7 +570,7 @@ function renderProps() {
     : t === 'font'
     ? `<label>${l} <span data-fp="${k}"></span></label>`
     : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="0.01" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`).join('')
-    + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button></div>`;
+    + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button><button id="r90" title="Tourner de 90° (touche R)">↻ 90°</button></div>`;
   p.querySelectorAll('input, select[data-k]').forEach(inp => {
     inp.oninput = () => {
       const k = inp.dataset.k;
@@ -568,6 +583,7 @@ function renderProps() {
   p.querySelectorAll('[data-fp]').forEach(el => el.replaceWith(fontPicker(it.font || '', id => { it.font = id; paint(); commit(); }, true, it.text || it.label)));
   $('del').onclick = del; $('dup').onclick = dup;
   $('cx').onclick = () => { it.x = +(W()/2).toFixed(2); render(); };
+  $('r90').onclick = () => rotate(90);
 }
 
 // Sélecteur de police maison : un <select> natif n'affiche pas les options dans leur police sur macOS
@@ -604,6 +620,7 @@ document.addEventListener('click', closePickers);
 document.querySelector('aside').addEventListener('scroll', () => closePickers(), {passive:true});
 addEventListener('resize', () => closePickers());
 
+function rotate(a) { const it = state.items[sel]; if (!it) return; it.rot = ((it.rot || 0) + a) % 360; if (!it.rot) delete it.rot; render(); }
 function add(it) { state.items.push(it); sel = state.items.length - 1; render(); }
 function del() { if (sel == null) return; state.items.splice(sel, 1); sel = null; render(); }
 function dup() { if (sel == null) return; add({...state.items[sel], x: state.items[sel].x + 5}); }
@@ -639,6 +656,7 @@ function cleanSvg(doc) {
 function normItem(it) {
   if (!it || typeof it !== 'object') return null;
   const o = {type: it.type, x: num(it.x, 0), y: num(it.y, 0)};
+  const rot = num(it.rot, 0, -360, 360) % 360; if (rot) o.rot = rot;
   const font = FONTS[it.font] ? it.font : '';
   switch (it.type) {
     case 'hole':
@@ -832,6 +850,8 @@ async function engraveCanvas(ink) {
   ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   for (const it of state.items) {
     const t = textOf(it);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (it.rot) { ctx.translate(it.x*S, it.y*S); ctx.rotate(it.rot*Math.PI/180); ctx.translate(-it.x*S, -it.y*S); }
     if (t) {
       ctx.font = `${t.weight} ${t.size*S}px '${FONTS[t.font].family}', sans-serif`;
       await document.fonts.load(ctx.font, t.str).catch(() => {});
@@ -850,6 +870,7 @@ async function engraveCanvas(ink) {
       ctx.drawImage(tmp, (it.x - it.w/2)*S, (it.y - it.w/it.ratio/2)*S);
     }
   }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   return cv;
 }
 let building3d = false;
@@ -878,9 +899,9 @@ async function build3d() {
     for (const it of state.items) {
       const round = (x, y, r) => { if (!inside(x, y, r)) return; const [cx, cy] = P(x, y), p = new T.Path(); p.absarc(cx, cy, r, 0, Math.PI*2, true); shape.holes.push(p); };
       if (it.type === 'hole') round(it.x, it.y, it.d/2);
-      if (it.type === 'bar') barPts(it).forEach(([bx, by]) => round(bx, by, it.d/2));
+      if (it.type === 'bar') barPts(it).forEach(([bx, by]) => round(...rotPt(it, bx, by), it.d/2));
       if (it.type === 'rect' && inside(it.x, it.y, Math.max(it.w, it.h)/2)) { const [cx, cy] = P(it.x, it.y);
-        shape.holes.push(new T.Path([new T.Vector2(cx - it.w/2, cy - it.h/2), new T.Vector2(cx - it.w/2, cy + it.h/2), new T.Vector2(cx + it.w/2, cy + it.h/2), new T.Vector2(cx + it.w/2, cy - it.h/2)])); }
+        shape.holes.push(new T.Path([[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([sx, sy]) => new T.Vector2(...P(...rotPt(it, it.x + sx*it.w/2, it.y + sy*it.h/2)))))); }
     }
     for (const m of mountHoles()) {
       const [cx, cy] = P(m.x, m.y), r = MOUNT.d/2, a = cx - MOUNT.slot/2, b = cx + MOUNT.slot/2, p = new T.Path();
@@ -918,7 +939,7 @@ async function build3d() {
       const o = new T.Group(); o.add(cyl(r, 1.2, lm), dome); return o; };
     for (const it of state.items) {
       if (it.type === 'bar') {
-        barPts(it).forEach(([bx, by], k) => { const o = led(it.d/2, barColor(k, it.n), barLit(k, it.n)), [px, py] = P(bx, by); o.position.set(px, py, 0); g.add(o); });
+        barPts(it).forEach(([bx, by], k) => { const o = led(it.d/2, barColor(k, it.n), barLit(k, it.n)), [px, py] = P(...rotPt(it, bx, by)); o.position.set(px, py, 0); g.add(o); });
         continue;
       }
       if (it.type === 'rect' && it.kind) {
@@ -933,7 +954,7 @@ async function build3d() {
           const depth = {vu:0.8, oled:0.3, rled:1.2, rocker:3}[it.kind];
           face.position.z = depth + 0.02; c.add(box(pw, ph, depth, mat.gloss, 0, 0, depth/2), face);
         }
-        c.position.set(cx, cy, 0); g.add(c);
+        c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
         continue;
       }
       if (it.type !== 'hole') continue;
@@ -957,6 +978,7 @@ async function build3d() {
           stick.position.y = 4.5; tip.position.y = 9; lever.add(stick, tip);
           lever.position.z = 7; lever.rotation.x = (90 - 18*tilt) * Math.PI / 180;
           c.add(cyl(4.62, 1.6, mat.metal, 0, 6), cyl(4.3, 0.4, mat.metal, 1.6), cyl(3, 5, mat.metal, 2, 40), lever); break; }
+        case 'arcade': c.add(cyl(it.d/2 + 3, 3, col, 0, 64, it.d/2 + 2.4), cyl(it.d/2 - 1.5, 5, col, 0, 64)); break;
         case 'jack635': c.add(cyl(7, 1.8, mat.metal, 0, 6), cyl(5, 4, mat.metal), cyl(3.25, 0.1, mat.dark, 4)); break;
         case 'dc': c.add(cyl(6.5, 2, mat.metal, 0, 36), cyl(5.2, 4, mat.metal), cyl(3.2, 0.1, mat.dark, 4), cyl(1.05, 3, mat.metal, 1.3)); break;
         case 'midi': { // prise DIN derrière la plaque, vue à travers le trou
@@ -967,7 +989,7 @@ async function build3d() {
         case 'button': c.add(cyl(it.d/2 + 1.2, 2, mat.metal), cyl(it.d/2, 4.5, col)); break;
         case 'bigbutton': { const k = it.d/15; c.add(cyl(9.5*k, 2.6, mat.gloss, 0, 64, 9.1*k), cyl(6.6*k, 2.9, mat.black), cyl(6.25*k, 3.6, col)); break; }
       }
-      c.position.set(cx, cy, 0); g.add(c);
+      c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
     }
 
     if (V3.group) { // libérer la scène précédente
@@ -1000,8 +1022,9 @@ const hole = (d, label, kind, color = '#e22222') => () => ({type:'hole', kind, d
 const GROUPS = [
   ['Entrées / sorties', [['Jack 3,5 mm', hole(6, 'IN', 'jack')], ['Jack 6,35 mm', hole(9.5, 'OUT', 'jack635')], ['MIDI DIN', hole(15.5, 'MIDI IN', 'midi')], ['Alim. DC', hole(11, '12 V DC', 'dc')]]],
   ['Contrôles', [['Pot 9 mm', hole(7, 'LEVEL', 'pot9')], ['Pot 16 mm', hole(7.5, 'FREQ', 'pot16')], ['Encodeur', hole(7, '', 'encoder')], ['Fader 30 mm', () => ({type:'rect', kind:'fader', w:2, h:35, r:1})],
-                 ['Inter. à levier', hole(6.2, '', 'toggle')], ['Inter. on/off', () => ({type:'rect', kind:'rocker', w:9.5, h:13, r:0.5})], ['Bouton poussoir', hole(7.2, '', 'button')],
-                 ['Bouton moyen 11,5 mm', hole(11.5, '', 'bigbutton', '#2d7bff')], ['Gros bouton 15 mm', hole(15, '', 'bigbutton', '#f2c200')]]],
+                 ['Inter. à levier', hole(6.2, '', 'toggle')], ['Inter. on/off', () => ({type:'rect', kind:'rocker', w:7, h:13, r:0.5})], ['Bouton poussoir', hole(7.2, '', 'button')],
+                 ['Bouton moyen 11,5 mm', hole(11.5, '', 'bigbutton', '#2d7bff')], ['Gros bouton 15 mm', hole(15, '', 'bigbutton', '#f2c200')],
+                 ['Bouton d\'arcade', hole(27, '', 'arcade', '#e8232b')]]],
   ['Voyants et affichage', [['LED 3 mm', hole(3.1, '', 'led')], ['LED 5 mm', hole(5.1, '', 'led')], ['LED rect. RGB', () => ({type:'rect', kind:'rled', w:5, h:2.5, r:0.3})], ['Barre de LED', () => ({type:'bar', n:8, pitch:5, d:3.1, vertical:true})],
                             ['VU-mètre', () => ({type:'rect', kind:'vu', w:35, h:28, r:1.5})], ['Écran OLED', () => ({type:'rect', kind:'oled', w:24, h:13, r:0.5})]]],
   ['Découpe et gravure', [['Trou libre', hole(4, '', 'hole')], ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})], ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})]]]];
@@ -1105,6 +1128,11 @@ svg.onpointerdown = e => {
 svg.onpointermove = e => {
   if (!drag) return;
   const p = pt(e), it = state.items[sel];
+  if (drag.resize && it.rot) { // logo tourné : on redimensionne autour du centre
+    const [lx, ly] = rotPt(it, p.x, p.y, -it.rot);
+    it.w = +Math.max(2, 2*Math.abs(lx - it.x), 2*Math.abs(ly - it.y)*it.ratio).toFixed(1);
+    paint(); return;
+  }
   if (drag.resize) {
     const {sx, sy, ax, ay} = drag.resize;
     const w = +Math.max(2, (p.x - ax)*sx, (p.y - ay)*sy*it.ratio).toFixed(1);
@@ -1139,6 +1167,7 @@ document.onkeydown = e => {
   if (mv) { it.x = +(it.x + mv[0]).toFixed(2); it.y = +(it.y + mv[1]).toFixed(2); render(); e.preventDefault(); }
   else if (e.key === 'Delete' || e.key === 'Backspace') { del(); e.preventDefault(); }
   else if (mod && k === 'd') { dup(); e.preventDefault(); }
+  else if (!mod && k === 'r') { rotate(e.shiftKey ? 15 : 90); e.preventDefault(); } // R = 90°, Maj+R = 15°
 };
 
 // ---------- Démarrage : reprendre le travail en cours ----------
