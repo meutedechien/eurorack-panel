@@ -84,10 +84,13 @@
   body.v3d .no3d { display:none; }
 
   /* Barre d'édition horizontale, sous le visuel : apparaît quand un élément est sélectionné */
+  #ver { position:fixed; right:10px; bottom:4px; font-size:11px; opacity:.55; pointer-events:none; z-index:6; }
   #editbar { position:sticky; bottom:52px; z-index:5; width:100%; max-width:1100px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
              box-shadow:0 4px 18px #0002; padding:8px 10px; display:none; }
   #editbar.on { display:block; }
-  #editbar #props { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; }
+  #editbar { padding:6px 10px; }
+  #editbar #props { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; }
+  #editbar .morerows { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; width:100%; border-top:1px solid #eee; padding-top:6px; }
   #editbar .prow { margin:0; width:auto; flex:0 0 auto; }
   #editbar .prow label { flex:0 0 auto; min-width:0; }
   #editbar .prow label input[type=number] { width:72px; }
@@ -224,9 +227,11 @@
     <button id="fit3d" class="only3d" title="Recentrer">⟲</button><button id="png3d" class="only3d"><span class="long">Image </span>PNG</button>
     <span id="warn" class="no3d"></span><span id="status"></span>
   </div>
+  <div id="ver" class="info"></div>
 </main>
 
 <script>
+const VERSION = '1.0', BUILD = '22/09/2026';
 const HP = 5.08;
 // Largeurs réelles Doepfer (table exploding-shed.com)
 const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80,16:80.90,18:91.30,20:101.30,22:111.40,28:141.90,42:213.00};
@@ -626,6 +631,7 @@ function render() {
 
 // ---------- Propriétés de l'élément sélectionné ----------
 
+let propsOpen = false; // détails de l'élément (étiquette, police, capuchon) repliés par défaut
 function renderProps() {
   const it = state.items[sel], p = $('props');
   $('editbar').classList.toggle('on', !!it);
@@ -648,8 +654,11 @@ function renderProps() {
     : t === 'rot'
     ? `<label>${l} <input data-k="${k}" type="number" step="1" value="${esc(it[k] ?? 0)}"></label><button data-rot="-90" title="Tourner à gauche">↺</button><button data-rot="90" title="Tourner à droite (touche R)">↻</button>`
     : `<label>${l} <input data-k="${k}" type="${t||'number'}" step="1" ${t==='checkbox' ? (it[k]?'checked':'') : `value="${esc(it[k] ?? '')}"`}></label>`;
-  p.innerHTML = rows.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
-    + `<div class="row"><button id="del">Supprimer</button><button id="dup">Dupliquer</button><button id="cx">Centrer en X</button></div>`;
+  const head = rows.slice(0, 2), more = rows.slice(2); // l'essentiel d'abord : position et rotation
+  p.innerHTML = head.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
+    + `<div class="row"><button id="del" title="Supprimer">✕</button><button id="dup" title="Dupliquer">⧉</button><button id="cx" title="Centrer en X">⇹</button>`
+    + (more.length ? `<button id="more">${propsOpen ? '− Moins' : '⋯ Plus'}</button>` : '') + `</div>`
+    + (more.length && propsOpen ? `<div class="morerows">${more.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')}</div>` : '');
   p.querySelectorAll('input, select[data-k]').forEach(inp => {
     inp.oninput = () => {
       const k = inp.dataset.k;
@@ -663,6 +672,7 @@ function renderProps() {
   $('del').onclick = del; $('dup').onclick = dup;
   $('cx').onclick = () => { it.x = +(W()/2).toFixed(2); render(); };
   p.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => rotate(+b.dataset.rot));
+  if ($('more')) $('more').onclick = () => { propsOpen = !propsOpen; renderProps(); };
 }
 
 // Sélecteur de police maison : un <select> natif n'affiche pas les options dans leur police sur macOS
@@ -1203,6 +1213,7 @@ $('png3d').onclick = () => { if (!V3) return; V3.draw(); V3.renderer.domElement.
 
 // ---------- Palette, glisser-déposer, clavier ----------
 
+$('ver').textContent = `Faces avant Eurorack — version ${VERSION} du ${BUILD}`;
 $('defs').innerHTML = REAL_DEFS;
 const mountFontPicker = () => $('font').replaceChildren(fontPicker(state.font, id => { state.font = id; render(); }, false));
 document.fonts.ready.then(() => view !== '3d' && paint()); // redessiner quand les polices web sont arrivées
