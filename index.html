@@ -8,38 +8,47 @@
 <!-- three.js n'est chargé qu'à l'ouverture de la vue 3D -->
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 <style>
-  :root { --bg:#f4f4f2; --fg:#222; --panel:#fff; --line:#ccc; --acc:#d33; --warn:#e8870e; }
+  :root, html[data-theme=clair] { --bg:#f4f4f2; --fg:#222; --panel:#fff; --line:#ccc; --acc:#d33; --accfg:#fff; --warn:#e8870e; --muted:#666; --tile:#fafafa; --input:#fff; --hi:#f1e6e6; --paper:#fff; --v3d:#2a2c30; --dim:#555; }
+  html[data-theme=sombre]    { --bg:#16181c; --fg:#e6e6e6; --panel:#1e2126; --line:#363a42; --acc:#ff5a4d; --accfg:#fff; --warn:#ffb74d; --muted:#9aa0aa; --tile:#262a31; --input:#22262c; --hi:#33272a; --paper:#23262b; --v3d:#16181c; --dim:#a9a9a9; }
+  html[data-theme=phosphore] { --bg:#071009; --fg:#7dffa0; --panel:#0a1710; --line:#14452a; --acc:#39ff88; --accfg:#062a14; --warn:#ffe066; --muted:#4faa72; --tile:#0d1f14; --input:#0b1a10; --hi:#113322; --paper:#08130c; --v3d:#050d08; --dim:#a9a9a9; }
+  button, select, textarea, input:not([type=color]):not([type=checkbox]):not([type=range]) { background:var(--input); color:var(--fg); border:1px solid var(--line); border-radius:4px; }
+  ::placeholder { color:var(--muted); }
   * { box-sizing: border-box; }
   body { margin:0; font:14px system-ui, sans-serif; background:var(--bg); color:var(--fg); display:flex; height:100vh; }
   aside { width:310px; flex:none; padding:12px; overflow-y:auto; overflow-x:hidden; background:var(--panel); border-right:1px solid var(--line); }
   aside h1 { font-size:15px; margin:0 0 8px; }
   main { flex:1; min-width:0; overflow:auto; display:flex; flex-direction:column; align-items:center; padding:20px; gap:14px; }
-  summary { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px; color:#666; cursor:pointer; }
-  details { border-bottom:1px solid #eee; padding-bottom:6px; }
+  summary { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px; color:var(--muted); cursor:pointer; }
+  details { border-bottom:1px solid var(--line); padding-bottom:6px; }
   label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0; }
   input, select { width:130px; padding:3px 5px; }
   input[type=checkbox] { width:auto; }
-  input[type=color] { width:28px; height:28px; flex:0 0 auto; padding:0; border:1px solid #999; border-radius:50%; background:none; cursor:pointer; }
+  input[type=color] { width:28px; height:28px; flex:0 0 auto; padding:0; border:1px solid var(--line); border-radius:50%; background:none; cursor:pointer; }
   input[type=color]::-webkit-color-swatch-wrapper { padding:0; }
   input[type=color]::-webkit-color-swatch { border:none; border-radius:50%; }
   #name { width:100%; font-size:15px; padding:5px 7px; }
   button { margin:2px 2px 2px 0; padding:4px 8px; cursor:pointer; }
   button:disabled { opacity:.4; cursor:default; }
-  .info { font-size:12px; color:#666; }
+  .info { font-size:12px; color:var(--muted); }
   .row { display:flex; gap:4px; flex-wrap:wrap; margin:4px 0; }
 
   #hpchips button { padding:2px 6px; font-size:12px; min-width:30px; }
-  #hpchips button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+  #hpchips button.on { background:var(--acc); color:var(--accfg); border-color:var(--acc); }
 
-  .palgrp { border:0; padding:0; }
-  .palgrp summary { font-size:11px; margin:8px 0 4px; }
+  #paltabs { display:flex; gap:4px; margin:8px 0; }
+  #paltabs button { flex:1; min-width:0; margin:0; padding:4px 2px 3px; border:1px solid var(--line); border-radius:6px; background:var(--tile); cursor:pointer; }
+  #paltabs button.on { border-color:var(--acc); background:var(--panel); box-shadow:0 0 0 1px var(--acc); }
+  #paltabs svg { width:24px; height:24px; display:block; margin:0 auto; }
+  #paltabs span { display:block; font-size:9px; line-height:1.1; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #paltabs button.on span { color:var(--fg); }
   #iconq { width:100%; margin:8px 0 4px; padding:5px 7px; }
   #iconres { max-height:260px; overflow:auto; }
   #iconres .tile svg { width:30px; height:30px; }
   .pal { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
-  .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:#fafafa; }
-  .palh { grid-column:1/-1; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0; }
-  .tile:hover { border-color:var(--acc); background:#fff; }
+  .pal[hidden] { display:none; } /* l'attribut hidden seul ne bat pas display:grid */
+  .tile { border:1px solid var(--line); border-radius:6px; padding:4px 2px; text-align:center; font-size:11px; cursor:grab; user-select:none; background:var(--tile); }
+  .palh { grid-column:1/-1; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0; }
+  .tile:hover { border-color:var(--acc); background:var(--panel); }
   .tile svg { width:44px; height:44px; display:block; margin:0 auto 2px; pointer-events:none; }
 
   .prow { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap; }
@@ -48,36 +57,36 @@
   .prow > button { margin:0; padding:4px 7px; }
   .prow .caps { width:100%; }
   .caps { display:flex; gap:6px; margin:4px 0 8px; }
-  .caps button { flex:1; margin:0; padding:4px 2px; font-size:11px; border:1px solid var(--line); border-radius:6px; background:#fafafa; }
-  .caps button.on { border-color:var(--acc); background:#fff; box-shadow:0 0 0 1px var(--acc); }
+  .caps button { flex:1; margin:0; padding:4px 2px; font-size:11px; border:1px solid var(--line); border-radius:6px; background:var(--tile); }
+  .caps button.on { border-color:var(--acc); background:var(--panel); box-shadow:0 0 0 1px var(--acc); }
   .caps svg { width:40px; height:40px; display:block; margin:0 auto 2px; }
 
   /* Sélecteur de police : liste en position fixe, calculée à l'ouverture, pour ne pas élargir la barre latérale */
   .fp { position:relative; width:150px; }
   .fp summary { list-style:none; text-transform:none; letter-spacing:0; font-weight:normal; color:inherit; margin:0; font-size:15px;
-                border:1px solid #999; border-radius:4px; padding:3px 22px 3px 6px; background:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                border:1px solid var(--line); border-radius:4px; padding:3px 22px 3px 6px; background:var(--input); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .fp summary::-webkit-details-marker { display:none; }
-  .fp summary::after { content:'▾'; position:absolute; right:6px; font-family:system-ui; color:#666; }
-  .fp .list { position:fixed; z-index:20; width:290px; overflow:auto; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 6px 20px #0003; padding:4px; }
+  .fp summary::after { content:'▾'; position:absolute; right:6px; font-family:system-ui; color:var(--muted); }
+  .fp .list { position:fixed; z-index:20; width:290px; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:6px; box-shadow:0 6px 20px #0003; padding:4px; }
   .fp .opt { display:block; width:100%; text-align:left; border:0; border-radius:4px; background:none; margin:0; padding:6px 8px; cursor:pointer; }
-  .fp .opt:hover, .fp .opt.on { background:#f1e6e6; }
+  .fp .opt:hover, .fp .opt.on { background:var(--hi); }
   .fp .opt b { display:block; font-weight:normal; font-size:18px; line-height:1.2; }
-  .fp .opt i { display:block; font-style:normal; font-size:13px; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fp .opt small { font-family:system-ui; font-size:11px; color:#888; }
+  .fp .opt i { display:block; font-style:normal; font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fp .opt small { font-family:system-ui; font-size:11px; color:var(--muted); }
 
   #lib { list-style:none; padding:0; margin:6px 0; max-height:240px; overflow:auto; }
   #lib li { display:flex; align-items:center; gap:4px; padding:4px 6px; border-radius:6px; }
-  #lib li.cur { background:#f7eded; }
+  #lib li.cur { background:var(--hi); }
   #lib li span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #lib li small { color:#888; }
+  #lib li small { color:var(--muted); }
   #lib li button { margin:0; padding:2px 6px; font-size:12px; }
   #dirty { color:var(--warn); font-size:12px; }
 
-  svg#view { background:#fff; box-shadow:0 2px 10px #0002; touch-action:none; flex:none; }
+  svg#view { background:var(--paper); box-shadow:0 2px 10px #0002; touch-action:none; flex:none; }
   .sel { stroke:var(--acc) !important; }
   svg#view [data-i] { pointer-events:all; cursor:grab; }
   svg#view.dragging, svg#view.dragging [data-i] { cursor:grabbing; }
-  #view3d { display:none; position:relative; width:100%; flex:1; min-height:420px; border-radius:10px; overflow:hidden; background:#2a2c30; }
+  #view3d { display:none; position:relative; width:100%; flex:1; min-height:420px; border-radius:10px; overflow:hidden; background:var(--v3d); }
   #view3d canvas { display:block; }
   #v3dmsg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#ddd; pointer-events:none; }
   body.v3d svg#view { display:none; }
@@ -88,12 +97,12 @@
 
   /* Barre d'édition horizontale, sous le visuel : apparaît quand un élément est sélectionné */
   #ver { position:fixed; right:10px; bottom:4px; font-size:11px; opacity:.55; pointer-events:none; z-index:6; }
-  #editbar { position:sticky; bottom:52px; z-index:5; width:100%; max-width:1100px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  #editbar { position:sticky; bottom:var(--vb, 52px); z-index:5; width:100%; max-width:1100px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
              box-shadow:0 4px 18px #0002; padding:8px 10px; display:none; }
   #editbar.on { display:block; }
   #editbar { padding:6px 10px; }
   #editbar #props { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; }
-  #editbar .morerows { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; width:100%; border-top:1px solid #eee; padding-top:6px; }
+  #editbar .morerows { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; width:100%; border-top:1px solid var(--line); padding-top:6px; }
   #editbar .prow { margin:0; width:auto; flex:0 0 auto; }
   #editbar .prow label { flex:0 0 auto; min-width:0; }
   #editbar .prow label input[type=number] { width:72px; }
@@ -105,18 +114,18 @@
   #editbar .row { margin:0; }
   #editbar .fp { width:130px; }
   .viewbar { position:sticky; bottom:0; padding:8px 12px; background:var(--bg); border-radius:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
-  .seg { display:inline-flex; border:1px solid #999; border-radius:8px; overflow:hidden; }
-  .seg button { margin:0; border:0; border-radius:0; padding:8px 16px; font-size:14px; background:#fff; }
-  .seg button + button { border-left:1px solid #999; }
-  .seg button.on { background:var(--acc); color:#fff; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { margin:0; border:0; border-radius:0; padding:8px 16px; font-size:14px; background:var(--input); color:var(--fg); }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button.on { background:var(--acc); color:var(--accfg); }
   .viewbar select { width:auto; padding:6px; }
   .viewbar > button { margin:0; padding:7px 10px; }
   #warn { color:var(--warn); font-size:13px; }
-  #status { font-size:13px; color:#555; }
+  #status { font-size:13px; color:var(--muted); }
   /* Mobile : visuel en haut (cadré automatiquement), réglages en dessous */
   @media (max-width: 760px) {
     body { flex-direction:column; height:100dvh; }
-    #editbar { bottom:0; max-height:42dvh; overflow:auto; }
+    #editbar { bottom:0; max-height:42dvh; overflow:auto; flex:none; } /* sinon la barre est écrasée par le flex de main */
     main { order:0; flex:none; height:58dvh; padding:8px; gap:6px; overflow:hidden; }
     aside { order:1; width:auto; flex:1; min-height:0; border-right:0; border-top:1px solid var(--line); }
     #zoomRow { display:none; }
@@ -136,7 +145,7 @@
   <h1>Faces avant Eurorack</h1>
   <input id="name" placeholder="Nom du module" maxlength="60">
 
-  <details open id="secPanel"><summary>1 · Panneau</summary>
+  <details open name="side" id="secPanel"><summary>1 · Panneau</summary>
   <label>Format <select id="fmt">
     <option value="3u">3U (128,5 mm)</option>
     <option value="ij">1U Intellijel (39,65 mm)</option>
@@ -149,14 +158,15 @@
   <label>Trous par rail <select id="nholes">
     <option value="auto">auto</option><option value="1">1 (centré)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
   </select></label>
-  <div class="info">Trous M3 : Ø 3,2 mm oblongs (+2 mm), à 3 mm des bords haut/bas et 7,5 mm du bord.</div>
+  <div class="info">Trous M3 : Ø 3,2 mm oblongs (+2 mm), à 3 mm des bords haut/bas et 7,5 mm du bord. Vis d'origine Doepfer : M3×6 tête bombée cruciforme (DIN 7985). Châssis 19″ : 84 HP utiles, soit 426,4 mm.</div>
   <label>Vis de fixation <select id="screw">
     <option value="cruci">Cruciforme</option><option value="bombee">Cruciforme bombée</option><option value="fraisee">Fraisée à fleur, six pans</option><option value="chc">Tête cylindrique, six pans</option>
+    <option value="dome">Bombée noire six pans</option><option value="molete">Moletée à main</option>
   </select></label>
   <label>Police par défaut <span id="font"></span></label>
   </details>
 
-  <details open><summary>2 · Composants</summary>
+  <details name="side"><summary>2 · Composants</summary>
   <div id="presets"></div>
   <div id="iconbox">
     <input id="iconq" type="search" placeholder="Chercher une icône (1 600 icônes Lucide)…">
@@ -165,7 +175,7 @@
   <p class="info">Glisse une miniature sur le panneau (ou clic = au centre). Un logo SVG/PNG peut aussi être glissé depuis le Finder (avec Maj = image de référence à décalquer).</p>
   </details>
 
-  <details open><summary>Mes modules</summary>
+  <details name="side"><summary>Mes modules</summary>
   <div class="row">
     <button id="libSave">Enregistrer</button>
     <button id="newMod">Nouveau</button>
@@ -180,25 +190,27 @@
   </div>
   <p class="info">L'import d'un panneau SVG convertit cercles, rectangles et textes en éléments modifiables : pratique pour repartir d'un module open source (Mutable, Befaco, Music Thing…). Les diamètres connus deviennent les bons composants.</p>
   <p class="info">La bibliothèque vit dans ce navigateur. Exporte en fichier .json pour sauvegarder ou partager (un ou plusieurs modules par fichier).</p>
+  <div class="row" id="exrow"></div>
+  <p class="info">Exemples de modules classiques, à charger pour partir d'une base (⌘Z pour revenir).</p>
   <input id="file" type="file" accept=".json,application/json" multiple hidden>
   <input id="svgfile" type="file" accept=".svg,image/svg+xml" hidden>
   <input id="logofile" type="file" accept=".svg,image/svg+xml,image/png,image/jpeg" hidden>
   </details>
 
-  <details open><summary>Export laser</summary>
+  <details name="side"><summary>Export laser</summary>
   <label>Textes en tracés <input id="topath" type="checkbox" checked></label>
   <button id="exSvg">Exporter SVG</button>
   <p class="info">SVG en mm, 1:1. Rouge = découpe, bleu = gravure.</p>
   </details>
 
-  <details><summary>Crédits</summary>
+  <details name="side"><summary>Crédits</summary>
   <p class="info">Modèles 3D des composants : <a href="https://jolin.tech/componentslibrary" target="_blank" rel="noopener">Jolin</a>, licence CC BY 4.0.<br>
   Banque de données des modules du commerce (largeurs en HP, profondeurs, visuels de panneaux) : <a href="https://modulargrid.net/" target="_blank" rel="noopener">ModularGrid</a> — consultation manuelle, aucune récupération automatique.<br>
   Icônes de la recherche : <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a>, licence ISC.<br>
   Cotes du format : Doepfer A-100, <a href="https://www.exploding-shed.com/synth-diy-guides/standards-of-eurorack/eurorack-dimensions/" target="_blank" rel="noopener">Exploding Shed</a>.</p>
   </details>
 
-  <details><summary>Image de référence</summary>
+  <details name="side"><summary>Image de référence</summary>
   <div class="row"><button id="bgPick">Choisir une image…</button><button id="bgDel">Retirer</button></div>
   <div class="prow"><label>Largeur (mm) <input id="bgW" type="number" step="1" value="40"></label><label>Opacité <input id="bgO" type="range" min="5" max="100" value="35"></label></div>
   <div class="prow"><label>X <input id="bgX" type="number" step="1" value="0"></label><label>Y <input id="bgY" type="number" step="1" value="0"></label></div>
@@ -206,7 +218,10 @@
   <input id="bgfile" type="file" accept="image/*" hidden>
   </details>
 
-  <details><summary>Affichage</summary>
+  <details name="side"><summary>Affichage</summary>
+  <label>Thème <select id="theme">
+    <option value="clair">Clair</option><option value="sombre">Sombre</option><option value="phosphore">Phosphore vert</option>
+  </select></label>
   <label>Grille d'aimantation (mm) <input id="grid" type="number" step="0.01" value="1.27"></label>
   <label>Cotes (cm) <input id="cotes" type="checkbox" checked></label>
   <label>Zones des rails <input id="rails" type="checkbox" checked></label>
@@ -214,7 +229,7 @@
   <label id="zoomRow">Zoom <input id="zoom" type="range" min="2" max="10" step="0.5" value="5"></label>
   </details>
 
-  <details><summary>Raccourcis</summary>
+  <details name="side"><summary>Raccourcis</summary>
   <p class="info">Glisser : aimanté sur la grille, l'axe central et les autres éléments (Alt = libre).<br>
   Flèches = déplacer (Maj = ×10) · R = tourner de 90° (Maj+R = 15°) · Suppr = effacer · ⌘D = dupliquer · ⌘Z / ⇧⌘Z = annuler / rétablir (boutons sous le visuel) · Échap = désélectionner.</p>
   </details>
@@ -228,7 +243,7 @@
     <button id="undo" title="Annuler la dernière action (⌘Z)">↶ Annuler</button><button id="redo" title="Rétablir (⇧⌘Z)">↷ Rétablir</button><button id="clear" title="Vider le panneau (annulable avec ⌘Z)">Vider</button>
     <div class="seg"><button id="vPlan" class="on">Plan</button><button id="vReal">Aperçu</button><button id="v3d">3D</button></div>
     <label id="hideRow" title="Ne montrer que la plaque percée et la gravure">Sans composants <input id="hide" type="checkbox"></label>
-    <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option><option value="mdf">MDF</option></select>
+    <select id="pcol" title="Couleur du panneau"><option value="alu">Aluminium</option><option value="noir">Noir</option><option value="blanc">Blanc</option><option value="mdf">MDF</option><option value="pcb">PCB (FR4)</option></select>
     <button id="fit3d" class="only3d" title="Recentrer">⟲</button><button id="png3d" class="only3d"><span class="long">Image </span>PNG</button>
     <span id="warn" class="no3d"></span><span id="status"></span>
   </div>
@@ -236,24 +251,30 @@
 </main>
 
 <script>
-const VERSION = '1.1', BUILD = '22/09/2026';
+const VERSION = '1.4', BUILD = '24/09/2026';
 const HP = 5.08;
 // Largeurs réelles Doepfer (table exploding-shed.com)
 const WIDTHS = {1:5.00,2:9.80,4:20.00,6:30.00,8:40.30,10:50.50,12:60.60,14:70.80,16:80.90,18:91.30,20:101.30,22:111.40,28:141.90,42:213.00};
 const HEIGHTS = {'3u':128.5, ij:39.65, pl:43.18};
 const RAIL = {'3u':10, ij:0, pl:0}; // ponytail: 10 mm de rail en haut/bas en 3U, valeur usuelle, pas de la norme
 const MOUNT = {d:3.2, slot:2, y:3, x:7.5}; // norme Doepfer : M3, 3 mm des bords haut/bas, 7,5 mm du bord gauche
-const KINDS = ['jack', 'jack635', 'midi', 'dc', 'pot9', 'pot16', 'led', 'toggle', 'button', 'bigbutton', 'arcade', 'encoder', 'hole'];
-const RECT_KINDS = ['vu', 'oled', 'fader', 'rled', 'rocker'];
+const KINDS = ['jack', 'jack635', 'midi', 'dc', 'pot9', 'pot16', 'led', 'toggle', 'toggle12', 'button', 'bigbutton', 'arcade', 'encoder', 'insert', 'hole'];
+const RECT_KINDS = ['vu', 'oled', 'fader', 'rled', 'rocker', 'slide'];
+const SLIDE = {d:2.2, off:5.5}; // inter. à glissière type SS12D00 : fente + 2 trous M2 à 11 mm d'entraxe
+const slidePts = it => { const v = it.h > it.w, o = it.w/2 + SLIDE.off - 3.5;
+  return [-1, 1].map(k => v ? [it.x, it.y + k*(it.h/2 + SLIDE.off - 3.5)] : [it.x + k*o, it.y]); };
 // Encombrement derrière la plaque (largeur × hauteur, mm), centré sur l'axe : zone inutilisable pour les voisins
-const BODY = { pot9:[12, 15], pot16:[12, 15], encoder:[12, 15] }; // ponytail: mêmes cotes pour tous les pots (donnée utilisateur), à affiner par modèle
+const BODY = { pot9:[12, 15], pot16:[12, 15], encoder:[12, 15], toggle:[13, 8.2], toggle12:[29, 16] }; // ponytail: mêmes cotes pour tous les pots (donnée utilisateur), à affiner par modèle
 const COLORED = ['led', 'button', 'bigbutton', 'arcade'];
 // Capuchons de potentiomètre au choix (aperçu seulement : le trou dépend du potentiomètre, pas du capuchon)
-const CAPS = { '':{name:"D'origine"}, alu9:{name:'Alu cranté Ø9', r:4.5}, jupe27:{name:'Jupe Ø27', r:13.5} };
+const CAPS = { '':{name:"D'origine"}, alu9:{name:'Alu cranté Ø9', r:4.5}, kna21:{name:'Cranté Ø21', r:10.6}, jupe27:{name:'Jupe Ø27', r:13.5} };
 const KNOBS = ['pot9', 'pot16', 'encoder'];
+// Capuchons de fader (aperçu seulement : la fente ne change pas) — largeur × longueur × hauteur en 3D
+const FCAPS = { '':{name:'Standard', w:9, h:12, z:7}, large:{name:'Large', w:13, h:8, z:6}, fin:{name:'Fin', w:6, h:16, z:8},
+                alu:{name:'Dessus alu', w:9, h:12, z:7, alu:true}, couleur:{name:'Coloré', w:9, h:12, z:7, col:true} };
 const capR = (it, def) => CAPS[it.cap]?.r ?? def;
 // Rayon visible du composant monté (bouton, écrou…) : étiquette au-dessus, cercle de sélection, chevauchements
-const REAL_R = { jack:()=>4, jack635:()=>7, midi:()=>7.75, dc:()=>6.5, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:it=>9.5*it.d/15, arcade:it=>it.d/2 + 3 };
+const REAL_R = { insert:()=>2.9, jack:()=>4, jack635:()=>7, midi:()=>7.75, dc:()=>6.5, pot9:it=>capR(it, 5.5), pot16:it=>capR(it, 8.5), encoder:it=>capR(it, 6), toggle:()=>6.4, toggle12:()=>8.1, led:it=>it.d/2+0.3, button:it=>it.d/2+1.2, bigbutton:it=>9.5*it.d/15, arcade:it=>it.d/2 + 3 };
 // Rotation d'un élément autour de son centre (degrés, sens horaire à l'écran comme rotate() en SVG)
 function rotPt(it, px, py, a = it.rot || 0) {
   if (!a) return [px, py];
@@ -261,10 +282,18 @@ function rotPt(it, px, py, a = it.rot || 0) {
   return [it.x + dx*Math.cos(t) - dy*Math.sin(t), it.y + dx*Math.sin(t) + dy*Math.cos(t)];
 }
 const footR = it => Math.max(it.d/2, REAL_R[it.kind]?.(it) ?? 0);
-const collR = it => it.kind === 'toggle' ? 4.62 : footR(it); // les leviers pointent tous du même côté : seul l'écrou compte
-const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'}, mdf:{fill:'url(#mdf)', ink:'#3a2212'} }; // MDF : gravure laser = brûlé brun foncé
+// Plateforme arrière : plaque support vissée derrière la face, sur entretoises M3
+const PLATE = {d:3.2, th:3, m:4}; // trous M3, plaque 3 mm, trous à 4 mm des coins
+const plateHoles = it => { const m = Math.min(PLATE.m, it.w/2 - 0.6, it.h/2 - 0.6);
+  return [[-1,-1], [1,-1], [1,1], [-1,1]].map(([sx, sy]) => [it.x + sx*(it.w/2 - m), it.y + sy*(it.h/2 - m)]); };
+// ponytail: profondeurs typiques derrière la face, à corriger quand on aura les cotes réelles de chaque composant
+const DEPTH = { jack:11, jack635:16, midi:20, dc:14, pot9:15, pot16:15, encoder:20, toggle:12, toggle12:32, button:13, bigbutton:12, arcade:15, led:5, insert:8, hole:0, fader:10, rocker:14, vu:22, oled:6, rled:5 };
+const plateNeed = pl => Math.max(0, ...state.items.filter(o => o !== pl && Math.abs(o.x - pl.x) < pl.w/2 && Math.abs(o.y - pl.y) < pl.h/2).map(o => DEPTH[o.kind] ?? 0));
+const collR = it => it.kind === 'toggle' ? 4.62 : it.kind === 'toggle12' ? 8.1 : footR(it); // les leviers pointent tous du même côté : seul l'écrou compte
+const PANEL = { alu:{fill:'url(#alu)', ink:'#111'}, noir:{fill:'#1b1b1d', ink:'#eee'}, blanc:{fill:'#f3f2ee', ink:'#111'}, mdf:{fill:'url(#mdf)', ink:'#3a2212'}, pcb:{fill:'url(#pcb)', ink:'#f2f5f3'} }; // MDF : gravure laser = brûlé brun foncé
 const REAL_DEFS = `<defs>
   <linearGradient id="alu" x1="0" y1="0" x2="1" y2="0.15"><stop offset="0" stop-color="#c9cccf"/><stop offset=".5" stop-color="#e6e8ea"/><stop offset="1" stop-color="#bfc2c6"/></linearGradient>
+  <linearGradient id="pcb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d6b3c"/><stop offset=".5" stop-color="#0a5c33"/><stop offset="1" stop-color="#084d2b"/></linearGradient>
   <linearGradient id="mdf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c29a6e"/><stop offset=".5" stop-color="#b98f63"/><stop offset="1" stop-color="#ad8358"/></linearGradient>
   <linearGradient id="lever" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f8389"/><stop offset=".45" stop-color="#f4f5f7"/><stop offset="1" stop-color="#8d9196"/></linearGradient>
   <linearGradient id="vuface" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf2cf"/><stop offset="1" stop-color="#efd690"/></linearGradient>
@@ -356,6 +385,10 @@ function realSvg(it, i) {
   let s = '';
   if (KNOBS.includes(it.kind) && it.cap === 'alu9') // cylindre noir cranté, dessus alu brossé, repère blanc (d'après photo)
     s = circ(4.5, 'url(#knob)', 'filter="url(#shadow)"') + knurl(4.5) + brushed(3.5) + mark(2.2, 3.3, 0.35);
+  else if (KNOBS.includes(it.kind) && it.cap === 'kna21') // bouton cranté Ø21 : jupe fine, dessus noir avec repère
+    s = circ(10.6, 'url(#knob)', 'filter="url(#shadow)"') + Array.from({length:60}, (_, k) => { const t = k*Math.PI/30;
+        return `<line x1="${x+9.4*Math.cos(t)}" y1="${y+9.4*Math.sin(t)}" x2="${x+10.6*Math.cos(t)}" y2="${y+10.6*Math.sin(t)}" stroke="#000" stroke-width="0.3" pointer-events="none"/>`; }).join('')
+      + circ(8.6, '#1a1a1a', 'stroke="#333" stroke-width="0.2"') + mark(4, 8, 0.6);
   else if (KNOBS.includes(it.kind) && it.cap === 'jupe27') { // jupe noire ondulée Ø27, centre alu brossé (d'après photo)
     const pts = scallop(13.5, 14, 168).map(([px, py]) => `${(x + px).toFixed(2)},${(y + py).toFixed(2)}`);
     s = `<polygon ${a} points="${pts.join(' ')}" fill="url(#knob)" filter="url(#shadow)"/>` + circ(10.2, '#0d0d0d', 'stroke="#2a2a2a" stroke-width="0.3"')
@@ -364,7 +397,9 @@ function realSvg(it, i) {
     case 'jack': s = circ(4, 'url(#metal)', 'stroke="#666" stroke-width="0.1" filter="url(#shadow)"') + circ(2.6, '#8a8d91') + circ(1.8, '#111'); break;
     case 'pot9': s = knob(5.5, false); break;
     case 'pot16': s = knob(8.5, false) + circ(8.5, 'none', 'stroke="#000" stroke-width="0.3"'); break;
-    case 'encoder': s = knob(6, true); break;
+    case 'encoder': // sans capuchon : écrou + axe moleté Ø6 avec son méplat, bien différent d'un bouton
+      s = hex(4.5) + circ(3, 'url(#knob)', 'filter="url(#shadow)"') + knurl(3)
+        + `<path d="M${x-2.1} ${y-1.4}H${x+2.1}" stroke="#555" stroke-width="0.4" pointer-events="none"/>`; break;
     case 'led': s = circ(it.d/2 + 0.3, '#333') + circ(it.d/2, col) + circ(it.d/2, 'url(#shine)'); break;
     case 'toggle': { // mini-inverseur : écrou 8 mm sur plat, canon fileté Ø6, levier conique incliné vu de dessus
       const dir = it.pos === 'down' ? 1 : it.pos === 'mid' ? 0 : -1, ty = y + dir*5;
@@ -373,6 +408,14 @@ function realSvg(it, i) {
         + [2.5, 2.1].map(r => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="0.15" pointer-events="none"/>`).join('');
       if (dir) s += `<polygon ${a} points="${x-1.25},${y} ${x+1.25},${y} ${x+0.9},${ty} ${x-0.9},${ty}" fill="url(#lever)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>`;
       s += `<circle ${a} cx="${x}" cy="${ty}" r="1.3" fill="url(#metal)" stroke="#555" stroke-width="0.1" filter="url(#shadow)"/>`;
+      break; }
+    case 'toggle12': { // E-TEN1021 : canon Ø12, écrou 14 sur plat, levier de 18 mm
+      const dir = it.pos === 'down' ? 1 : it.pos === 'mid' ? 0 : -1, ty = y + dir*9;
+      s = hex(8.1) + `<circle cx="${x}" cy="${y}" r="6.9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="0.3" pointer-events="none"/>`
+        + circ(6.1, 'url(#metal)', 'stroke="#666" stroke-width="0.15"')
+        + [5.1, 4.3].map(r => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="0.2" pointer-events="none"/>`).join('');
+      if (dir) s += `<polygon ${a} points="${x-2.3},${y} ${x+2.3},${y} ${x+1.7},${ty} ${x-1.7},${ty}" fill="url(#lever)" stroke="#666" stroke-width="0.15" filter="url(#shadow)"/>`;
+      s += `<circle ${a} cx="${x}" cy="${ty}" r="2.4" fill="url(#metal)" stroke="#555" stroke-width="0.12" filter="url(#shadow)"/>`;
       break; }
     case 'jack635': s = hex(7) + circ(5, 'url(#metal)', 'stroke="#666" stroke-width="0.12"') + circ(3.9, '#8a8d91') + circ(3.25, '#111'); break;
     case 'dc': s = circ(6.5, 'url(#metal)', 'stroke="#666" stroke-width="0.1" filter="url(#shadow)"') + knurl(6.5) + circ(5.2, 'url(#metal)') + circ(3.2, '#1a1a1a') + circ(1.05, 'url(#metal)'); break;
@@ -387,6 +430,7 @@ function realSvg(it, i) {
       const rb = it.d/2 + 3, rc = it.d/2 - 1.5;
       s = circ(rb, col, 'filter="url(#shadow)"') + circ(rb, 'url(#capsheen)') + circ(rc + 0.6, '#000', 'fill-opacity=".35"')
         + circ(rc, col) + `<circle cx="${x}" cy="${y}" r="${rc}" fill="url(#concave)" pointer-events="none"/>`; break; }
+    case 'insert': s = screwSvg(x, y, it.screw); break; // insert fileté : même profil de tête que les vis
     default: s = circ(it.d/2, '#111');
   }
   if (i === sel) s += `<circle cx="${x}" cy="${y}" r="${footR(it) + 1.5}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" pointer-events="none"/>`;
@@ -422,7 +466,7 @@ function realRect(it, i) {
       + `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="url(#glass)" ${ns}/>`;
     bw += 2; bh += 2;
   } else if (it.kind === 'rled') { // LED rectangulaire multicolore
-    s = `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${Math.min(w, h)*0.2}" fill="url(#rgb)" stroke="#0006" stroke-width="0.15"/>`
+    s = `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${Math.min(w, h)*0.2}" fill="${it.color || 'url(#rgb)'}" stroke="#0006" stroke-width="0.15"/>`
       + `<rect x="${x0}" y="${y0}" width="${w}" height="${h/2}" rx="${Math.min(w, h)*0.2}" fill="#fff" fill-opacity=".35" ${ns}/>`;
     bw += 1; bh += 1;
   } else if (it.kind === 'rocker') { // interrupteur à bascule on/off : collerette + bascule I / O
@@ -432,12 +476,27 @@ function realRect(it, i) {
       + `<text x="${ix}" y="${iy + fs*0.35}" font-size="${fs}" text-anchor="middle" fill="#eee" font-family="Helvetica, Arial, sans-serif" font-weight="bold" ${ns}>I</text>`
       + `<text x="${ox}" y="${oy + fs*0.35}" font-size="${fs}" text-anchor="middle" fill="#eee" font-family="Helvetica, Arial, sans-serif" font-weight="bold" ${ns}>O</text>`;
     bw += 2; bh += 2;
-  } else if (it.kind === 'fader') { // fente + capuchon de fader
+  } else if (it.kind === 'slide') { // inter. à glissière : platine noire, curseur strié, 2 vis M2
+    const v = h > w, L = (v ? h : w) + 11, T = (v ? w : h) + 4.5, bx0 = x - (v ? T : L)/2, by0 = y - (v ? L : T)/2;
+    const cw = v ? T - 2.4 : (L - 11)*0.55, ch = v ? (L - 11)*0.55 : T - 2.4;
+    s = `<rect ${a} x="${bx0}" y="${by0}" width="${v ? T : L}" height="${v ? L : T}" rx="0.6" fill="#141414" filter="url(#shadow)"/>`
+      + `<rect ${a} x="${x0 - 0.4}" y="${y0 - 0.4}" width="${w + 0.8}" height="${h + 0.8}" rx="0.4" fill="#000"/>`
+      + `<rect ${a} x="${x - cw/2}" y="${y - ch/2}" width="${cw}" height="${ch}" rx="0.5" fill="url(#knob)"/>`
+      + [-0.25, 0, 0.25].map(o => v ? `<line x1="${x - cw*0.35}" x2="${x + cw*0.35}" y1="${y + ch*o}" y2="${y + ch*o}" stroke="#000" stroke-width="0.25" ${ns}/>`
+                                    : `<line y1="${y - ch*0.35}" y2="${y + ch*0.35}" x1="${x + cw*o}" x2="${x + cw*o}" stroke="#000" stroke-width="0.25" ${ns}/>`).join('')
+      + (it.m2 ? slidePts({...it}).map(([px, py]) => `<circle cx="${px}" cy="${py}" r="1.8" fill="url(#metal)" stroke="#555" stroke-width="0.1" ${ns}/><path d="M${px-1} ${py}H${px+1}" stroke="#444" stroke-width="0.3" ${ns}/>`).join('') : '');
+    bw = v ? T : L; bh = v ? L : T;
+  } else if (it.kind === 'fader') { // fente + capuchon au choix
+    const f = FCAPS[it.cap] || FCAPS[''], vert = h >= w, cw = vert ? f.w : f.h, ch = vert ? f.h : f.w;
     s = `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${Math.min(w, h)/2}" fill="#0b0b0b"/>`
-      + `<rect ${a} x="${x - 4.5}" y="${y - 6}" width="9" height="12" rx="1.2" fill="url(#knob)" filter="url(#shadow)"/>`
-      + [-3.5, -2.3, 2.3, 3.5].map(o => `<line x1="${x - 3.6}" x2="${x + 3.6}" y1="${y + o}" y2="${y + o}" stroke="#000" stroke-width="0.35" ${ns}/>`).join('')
-      + `<line x1="${x - 4}" x2="${x + 4}" y1="${y}" y2="${y}" stroke="#fff" stroke-width="0.5" ${ns}/>`;
-    bw = Math.max(w, 9); bh = Math.max(h, 12);
+      + `<rect ${a} x="${x - cw/2}" y="${y - ch/2}" width="${cw}" height="${ch}" rx="1.2" fill="${f.col ? (it.color || '#e22222') : 'url(#knob)'}" filter="url(#shadow)"/>`;
+    if (f.alu) s += `<rect x="${x - cw/2 + 0.8}" y="${y - ch/2 + 0.8}" width="${cw - 1.6}" height="${ch - 1.6}" rx="0.8" fill="url(#brushed)" ${ns}/>`;
+    else s += [-0.3, -0.2, 0.2, 0.3].map(o => vert
+        ? `<line x1="${x - cw*0.4}" x2="${x + cw*0.4}" y1="${y + ch*o}" y2="${y + ch*o}" stroke="#000" stroke-width="0.35" ${ns}/>`
+        : `<line y1="${y - ch*0.4}" y2="${y + ch*0.4}" x1="${x + cw*o}" x2="${x + cw*o}" stroke="#000" stroke-width="0.35" ${ns}/>`).join('');
+    s += vert ? `<line x1="${x - cw*0.45}" x2="${x + cw*0.45}" y1="${y}" y2="${y}" stroke="#fff" stroke-width="0.5" ${ns}/>`
+              : `<line y1="${y - ch*0.45}" y2="${y + ch*0.45}" x1="${x}" x2="${x}" stroke="#fff" stroke-width="0.5" ${ns}/>`;
+    bw = Math.max(w, cw); bh = Math.max(h, ch);
   } else return `<rect ${a} x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${it.r||0}" fill="#0b0d10" stroke="${i === sel ? '#d33' : '#333'}" stroke-width="0.3"/>`;
   if (i === sel) s += `<rect x="${x - bw/2 - 1}" y="${y - bh/2 - 1}" width="${bw + 2}" height="${bh + 2}" fill="none" stroke="#d33" stroke-width="0.3" stroke-dasharray="1 0.6" ${ns}/>`;
   return s;
@@ -460,6 +519,17 @@ function textSvg(t, i, fill, extra = '') {
   return `<text data-i="${i}" x="${t.x}" y="${t.y}" font-size="${t.size}" font-family="'${FONTS[t.font].family}', sans-serif" font-weight="${t.weight}" data-font="${t.font}" data-w="${t.weight}" fill="${fill}" stroke="none" text-anchor="middle"${extra}>${esc(t.str)}</text>`;
 }
 
+function plateSvg(it, i) {
+  const a = `data-i="${i}"`, sc = i === sel ? ' class="sel"' : '';
+  let s = plateHoles(it).map(([px, py]) => REAL ? screwSvg(px, py, it.screw)
+    : `<circle ${a} cx="${px}" cy="${py}" r="${PLATE.d/2}" fill="none" stroke="#f00" stroke-width="0.1"${sc}/>`).join('');
+  if (GUIDES) s = `<rect ${a} x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" fill="#2f9e6e14" stroke="${i === sel ? '#d33' : '#2f9e6e'}" stroke-width="0.25" stroke-dasharray="1.2 0.8"/>` + s;
+  return s; // la plaque elle-même part dans l'export comme deuxième pièce, pas ici
+}
+// La plaque, à plat et centrée sur 0,0 : deuxième pièce à découper
+const plateCut = it => `<rect x="${-it.w/2}" y="${-it.h/2}" width="${it.w}" height="${it.h}" fill="none" stroke="#f00" stroke-width="0.1"/>`
+  + plateHoles({...it, x:0, y:0}).map(([px, py]) => `<circle cx="${px}" cy="${py}" r="${PLATE.d/2}" fill="none" stroke="#f00" stroke-width="0.1"/>`).join('');
+
 function itemSvg(it, i) {
   const c = i === sel ? ' class="sel"' : '';
   const cut = 'fill="none" stroke="#f00" stroke-width="0.1"';
@@ -468,9 +538,13 @@ function itemSvg(it, i) {
   let s = '';
   if (it.type === 'hole') {
     s += REAL ? realSvg(it, i) : `<circle data-i="${i}" cx="${it.x}" cy="${it.y}" r="${it.d/2}" ${cut}${c}/>`;
+    if (it.kind === 'toggle12' && !REAL) s += `<rect data-i="${i}" x="${it.x - 0.8}" y="${it.y - it.d/2 - 1}" width="1.6" height="1.4" ${cut}${c}/>`; // détrompeur anti-rotation
     if (t) s += textSvg(t, i, ink);
   } else if (it.type === 'rect') {
     s += REAL ? realRect(it, i) : `<rect data-i="${i}" x="${it.x - it.w/2}" y="${it.y - it.h/2}" width="${it.w}" height="${it.h}" rx="${it.r||0}" ${cut}${c}/>`;
+    if (it.kind === 'slide' && it.m2 && !REAL) s += slidePts(it).map(([px, py]) => `<circle data-i="${i}" cx="${px}" cy="${py}" r="${SLIDE.d/2}" ${cut}${c}/>`).join('');
+  } else if (it.type === 'plate') {
+    s += plateSvg(it, i);
   } else if (it.type === 'bar') {
     s += REAL ? realBar(it, i) : barPts(it).map(([px, py]) => `<circle data-i="${i}" cx="${px}" cy="${py}" r="${it.d/2}" ${cut}${c}/>`).join('');
   } else if (it.type === 'text') {
@@ -494,16 +568,16 @@ function itemSvg(it, i) {
 const cm = mm => (mm/10).toFixed(2).replace('.', ',') + ' cm';
 function dimsSvg() {
   if (!$('cotes').checked) return '';
-  const w = W(), h = H(), st = 'stroke="#555" stroke-width="0.15"', tx = 'font-size="2.6" fill="#333" font-family="Helvetica, Arial, sans-serif" text-anchor="middle"';
+  const w = W(), h = H(), st = 'stroke="var(--dim)" stroke-width="0.15"', tx = 'font-size="2.6" fill="var(--dim)" font-family="Helvetica, Arial, sans-serif" text-anchor="middle"';
   const arrow = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${st} marker-start="url(#arr)" marker-end="url(#arr)"/>`;
-  let s = `<defs><marker id="arr" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L6 3L0 6z" fill="#555"/></marker></defs>`;
+  let s = `<defs><marker id="arr" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L6 3L0 6z" fill="var(--dim)"/></marker></defs>`;
   s += `<line x1="0" y1="-1" x2="0" y2="-9" ${st}/><line x1="${w}" y1="-1" x2="${w}" y2="-9" ${st}/>` + arrow(0, -7, w, -7)
      + `<text x="${w/2}" y="-8.5" ${tx}>${cm(w)}</text>`;
   s += `<line x1="-1" y1="0" x2="-9" y2="0" ${st}/><line x1="-1" y1="${h}" x2="-9" y2="${h}" ${st}/>` + arrow(-7, 0, -7, h)
      + `<text x="-8.5" y="${h/2}" ${tx} transform="rotate(-90 -8.5 ${h/2})">${cm(h)}</text>`;
   const it = state.items[sel];
   if (it) { // distances bord gauche / bord haut → centre de l'élément
-    const c = 'stroke="#d33" stroke-width="0.15" stroke-dasharray="0.8 0.5"', t = tx.replace('#333', '#d33');
+    const c = 'stroke="#d33" stroke-width="0.15" stroke-dasharray="0.8 0.5"', t = tx.replace('var(--dim)', '#d33');
     s += `<line x1="0" y1="${it.y}" x2="${it.x}" y2="${it.y}" ${c} pointer-events="none"/><text x="${it.x/2}" y="${it.y - 1}" ${t}>${cm(it.x)}</text>`;
     s += `<line x1="${it.x}" y1="0" x2="${it.x}" y2="${it.y}" ${c} pointer-events="none"/><text x="${it.x + 1}" y="${it.y/2}" ${t} text-anchor="start">${cm(it.y)}</text>`;
   }
@@ -524,6 +598,11 @@ function issues() {
     if (A) for (const [b, j] of holes) { const B = bodyRect(b);
       if (j > i && B && A[0] < B[0] + B[2] && B[0] < A[0] + A[2] && A[1] < B[1] + B[3] && B[1] < A[1] + A[3]) { out.set(i, 'corps arrière qui se touchent'); out.set(j, 'corps arrière qui se touchent'); } }
   }
+  for (const [pl, i] of state.items.map((it, i) => [it, i]).filter(([it]) => it.type === 'plate')) {
+    const need = plateNeed(pl);
+    if (pl.off < need) out.set(i, `entretoises trop courtes (${need} mm nécessaires)`);
+    if (pl.x - pl.w/2 < 0 || pl.x + pl.w/2 > w || pl.y - pl.h/2 < 0 || pl.y + pl.h/2 > h) out.set(i, 'plateforme hors du panneau');
+  }
   return out;
 }
 const bodyRect = it => { // ponytail: encombrement traité à 0° ou 90° près, suffisant pour des rectangles presque carrés
@@ -540,29 +619,39 @@ function issuesSvg() {
   $('warn').textContent = list.size ? `⚠ ${list.size} composant${list.size > 1 ? 's' : ''} à vérifier` : '';
   $('warn').title = [...new Set(list.values())].join(', ');
   return [...list.keys()].map(i => { const it = state.items[i];
-    return `<circle cx="${it.x}" cy="${it.y}" r="${footR(it) + 0.8}" fill="none" stroke="#e8870e" stroke-width="0.35" stroke-dasharray="0.6 0.6" pointer-events="none"/>`; }).join('');
+    return it.type === 'plate'
+      ? `<rect x="${it.x - it.w/2 - 0.8}" y="${it.y - it.h/2 - 0.8}" width="${it.w + 1.6}" height="${it.h + 1.6}" fill="none" stroke="#e8870e" stroke-width="0.35" stroke-dasharray="0.6 0.6" pointer-events="none"/>`
+      : `<circle cx="${it.x}" cy="${it.y}" r="${footR(it) + 0.8}" fill="none" stroke="#e8870e" stroke-width="0.35" stroke-dasharray="0.6 0.6" pointer-events="none"/>`; }).join('');
 }
 
 // Échelle écran en px/mm : curseur sur ordinateur, cadrage automatique sur mobile
 const mobile = matchMedia('(max-width: 760px)');
 function zoom() {
   if (!mobile.matches) return +$('zoom').value;
-  const main = document.querySelector('main'), bar = document.querySelector('.viewbar');
-  return Math.max(1, Math.min((main.clientWidth - 16) / (W() + 18), (main.clientHeight - bar.offsetHeight - 22) / (H() + 18)));
+  const main = document.querySelector('main'), bar = document.querySelector('.viewbar'), eb = $('editbar');
+  const taken = bar.offsetHeight + (eb.classList.contains('on') ? eb.offsetHeight : 0) + 22;
+  return Math.max(1, Math.min((main.clientWidth - 16) / (W() + 18), (main.clientHeight - taken) / (H() + 18)));
 }
 addEventListener('resize', () => { clearTimeout(zoom.t); zoom.t = setTimeout(render, 150); });
 
 // Vis de fixation vues de face (aperçu réaliste) : tête M3 Ø5,5 à 5,8 mm
-const SCREWS = ['cruci', 'bombee', 'fraisee', 'chc'];
-function screwSvg(x, y) {
+const SCREWS = ['cruci', 'bombee', 'fraisee', 'chc', 'dome', 'molete'];
+// Profils issus de la bibliothèque, ramenés au M3 (tête ≈ 5,5 mm)
+const SCREW_MODELS = { cruci:{f:'screw_phillips', s:1.35}, dome:{f:'screw_dome_m3', s:1}, molete:{f:'screw_knurled', s:0.75} };
+function screwSvg(x, y, style = state.screw) {
   const hexa = r => `<polygon points="${[0,1,2,3,4,5].map(k => `${x + r*Math.cos(k*Math.PI/3)},${y + r*Math.sin(k*Math.PI/3)}`).join(' ')}" fill="#1a1a1a" stroke="#000" stroke-width="0.1"/>`;
   const cross = w => `<path d="M${x-1.4} ${y}H${x+1.4}M${x} ${y-1.4}V${y+1.4}" stroke="#444" stroke-width="${w}" stroke-linecap="round"/>`;
-  switch (state.screw) {
+  const ticks = (r, n) => Array.from({length:n}, (_, k) => { const t = k*2*Math.PI/n; return `<line x1="${x+(r-0.5)*Math.cos(t)}" y1="${y+(r-0.5)*Math.sin(t)}" x2="${x+r*Math.cos(t)}" y2="${y+r*Math.sin(t)}" stroke="#555" stroke-width="0.2"/>`; }).join('');
+  switch (style || state.screw) {
     case 'bombee': return `<circle cx="${x}" cy="${y}" r="2.8" fill="url(#dome)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>` + cross(0.5)
       + `<circle cx="${x - 0.8}" cy="${y - 0.9}" r="0.6" fill="#fff" fill-opacity=".7"/>`;
     case 'fraisee': return `<circle cx="${x}" cy="${y}" r="2.9" fill="url(#lever)" stroke="#8a8d91" stroke-width="0.2"/>` + hexa(1.15); // à fleur : pas d'ombre
     case 'chc': return `<circle cx="${x}" cy="${y}" r="2.75" fill="url(#metal)" stroke="#555" stroke-width="0.12" filter="url(#shadow)"/>`
       + `<circle cx="${x}" cy="${y}" r="2.35" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="0.2"/>` + hexa(1.3);
+    case 'dome': return `<circle cx="${x}" cy="${y}" r="2.8" fill="url(#bezel)" stroke="#333" stroke-width="0.1" filter="url(#shadow)"/>` + hexa(1.15)
+      + `<circle cx="${x - 0.8}" cy="${y - 0.9}" r="0.5" fill="#fff" fill-opacity=".25"/>`;
+    case 'molete': return `<circle cx="${x}" cy="${y}" r="2.9" fill="url(#metal)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>` + ticks(2.9, 20)
+      + `<circle cx="${x}" cy="${y}" r="1" fill="none" stroke="#777" stroke-width="0.2"/>`;
     default: return `<circle cx="${x}" cy="${y}" r="2.8" fill="url(#metal)" stroke="#666" stroke-width="0.1" filter="url(#shadow)"/>` + cross(0.45);
   }
 }
@@ -613,6 +702,7 @@ function panelSvg(guides) {
 function paint() {
   if (view === '3d') { clearTimeout(paint.t); paint.t = setTimeout(build3d, 150); return; }
   let s = panelSvg(true);
+  if (repOpen && state.items[sel]) s += repGhosts(); // aperçu direct de la répétition
   if (drag) {
     const w = W(), h = H(), st = 'stroke="#f0a" stroke-width="0.15"';
     if (guideX != null) s += `<line x1="${guideX}" x2="${guideX}" y1="0" y2="${h}" ${st}/>`;
@@ -622,31 +712,51 @@ function paint() {
 }
 
 function render() {
+  renderProps(); // avant le calcul du zoom : sur mobile, la barre d'édition mange de la hauteur
   const w = W(), h = H(), z = zoom(), m = 14; // m : marge pour les cotes
   svg.setAttribute('viewBox', `${-m} ${-m} ${w+m+4} ${h+m+4}`);
   svg.setAttribute('width', (w+m+4)*z);
   svg.setAttribute('height', (h+m+4)*z);
   paint();
+  document.documentElement.style.setProperty('--vb', (document.querySelector('.viewbar').offsetHeight + 6) + 'px'); // la barre des vues peut passer sur deux lignes
   if (document.activeElement !== $('w')) $('w').value = W();
   document.querySelectorAll('#hpchips button').forEach(b => b.classList.toggle('on', +b.dataset.hp === state.hp));
   $('winfo').textContent = `Théorique : ${(state.hp*HP).toFixed(2)} mm (${(state.hp*0.2).toFixed(1)}") · hauteur ${h} mm (${(h/25.4).toFixed(2)}")` + (WIDTHS[state.hp] || state.w ? '' : ' · largeur estimée (hors table)');
-  renderProps();
   commit();
 }
 
 // ---------- Propriétés de l'élément sélectionné ----------
 
 // Nom lisible d'un élément, affiché dans la barre du bas
-const KIND_NAMES = { jack:'Jack 3,5 mm', jack635:'Jack 6,35 mm', midi:'MIDI DIN', dc:'Alim. DC', pot9:'Pot 9 mm', pot16:'Pot 16 mm',
-  encoder:'Encodeur', toggle:'Inter. à levier', button:'Bouton poussoir', bigbutton:'Bouton', arcade:"Bouton d'arcade", led:'LED', hole:'Trou libre' };
-const RECT_NAMES = { fader:'Fader', rocker:'Inter. on/off', vu:'VU-mètre', oled:'Écran OLED', rled:'LED rect. RGB', '':'Découpe rect.' };
+const KIND_NAMES = { insert:'Insert M3', jack:'Jack 3,5 mm', jack635:'Jack 6,35 mm', midi:'MIDI DIN', dc:'Alim. DC', pot9:'Pot 9 mm', pot16:'Pot 16 mm',
+  encoder:'Encodeur', toggle:'Mini inter. à levier MTS-102', toggle12:'Inter. à levier Ø12 E-TEN1021', button:'Bouton poussoir', bigbutton:'Bouton', arcade:"Bouton d'arcade", led:'LED', hole:'Trou libre' };
+const RECT_NAMES = { slide:'Inter. à glissière', fader:'Fader', rocker:'Inter. on/off', vu:'VU-mètre', oled:'Écran OLED', rled:'LED rect. RGB', '':'Découpe rect.' };
 function itemName(it) {
   if (it.type === 'hole') return (KIND_NAMES[it.kind] || 'Composant') + (it.kind === 'led' || it.kind === 'bigbutton' ? ` Ø${it.d}` : '');
   if (it.type === 'rect') return RECT_NAMES[it.kind || ''] || 'Découpe';
+  if (it.type === 'plate') return `Plateforme arrière ${it.w}×${it.h} · recul ${it.off} mm`;
   return { bar:'Barre de LED', text:'Texte', logo:'Logo / symbole' }[it.type] || 'Élément';
 }
 
 let propsOpen = false; // détails de l'élément (étiquette, police, capuchon) repliés par défaut
+let repOpen = false, rep = {nx:3, ny:1, dx:10.16, dy:15}; // duplication en ligne ou en grille, réglages mémorisés
+function repPts(it) { // positions des copies, la première étant l'élément d'origine
+  const nx = Math.max(1, Math.round(rep.nx)), ny = Math.max(1, Math.round(rep.ny)), out = [];
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) if (i || j) out.push([+(it.x + i*rep.dx).toFixed(2), +(it.y + j*rep.dy).toFixed(2)]);
+  return out;
+}
+const repGhosts = () => `<g opacity="0.45" pointer-events="none">`
+  + repPts(state.items[sel]).map(([x, y]) => itemSvg({...state.items[sel], x, y}, -1)).join('') + `</g>`;
+function repeatSel() {
+  const it = state.items[sel];
+  if (!it) return;
+  const pts = repPts(it);
+  if (!pts.length) return;
+  it.gid = it.gid || uid().slice(0, 8); // série déplaçable d'un bloc
+  for (const [x, y] of pts) state.items.push({...it, x, y});
+  repOpen = false;
+  render(); msg(`${pts.length} copie(s) ajoutée(s), déplaçables en groupe (⌘Z pour annuler)`);
+}
 function renderProps() {
   const it = state.items[sel], p = $('props');
   $('editbar').classList.toggle('on', !!it);
@@ -654,14 +764,22 @@ function renderProps() {
   // Lignes de propriétés : les champs liés (X/Y, largeur/hauteur…) tiennent sur une seule ligne
   const rows = { hole:[[['x','X'],['y','Y']], [['rot','Rotation (°)','rot']], [['d','Ø'],['size','Taille étiq.']], [['label','Étiquette','text']], [['font','Police','font']],
                        ...(COLORED.includes(it.kind) ? [[['color','Couleur','color']]] : []),
-                       ...(it.kind === 'toggle' ? [[['pos','Levier','select', [['up','Haut'], ['mid','Milieu'], ['down','Bas']]]]] : []),
+                       ...(['toggle', 'toggle12'].includes(it.kind) ? [[['pos','Levier','select', [['up','Haut'], ['mid','Milieu'], ['down','Bas']]]]] : []),
+                       ...(it.kind === 'insert' ? [[['screw','Profil','select', [['', 'Comme le panneau'], ['cruci','Cruciforme'], ['bombee','Bombée'], ['fraisee','Fraisée'], ['chc','Six pans'], ['dome','Bombée noire'], ['molete','Moletée']]]]] : []),
                        ...(KNOBS.includes(it.kind) ? [[['cap','Capuchon','cap']]] : [])],
+                 plate:[[['x','X centre'],['y','Y centre']], [['w','Largeur'],['h','Hauteur']], [['off','Recul (mm)']],
+                        [['screw','Vis','select', [['', 'Comme le panneau'], ['cruci','Cruciforme'], ['bombee','Bombée'], ['fraisee','Fraisée'], ['chc','Six pans'], ['dome','Bombée noire'], ['molete','Moletée']]]]],
                  bar:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['n','Nombre'],['pitch','Pas (mm)']], [['d','Ø'],['vertical','Vertical','checkbox']]],
-                 rect:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['w','Largeur'],['h','Hauteur']], [['r','Rayon coins']]],
+                 rect:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['w','Largeur'],['h','Hauteur']], [['r','Rayon coins']],
+                       ...(it.kind === 'fader' ? [[['cap','Capuchon','fcap']]] : []),
+                       ...(it.kind === 'slide' ? [[['m2','Trous de fixation M2','checkbox']]] : []),
+                       ...((it.kind === 'fader' && it.cap === 'couleur') || it.kind === 'rled' ? [[['color','Couleur','color']]] : [])],
                  text:[[['x','X'],['y','Y']], [['rot','Rotation (°)','rot']], [['text','Texte','text']], [['font','Police','font']], [['size','Taille'],['bold','Gras','checkbox']]],
                  logo:[[['x','X centre'],['y','Y centre']], [['rot','Rotation (°)','rot']], [['w','Largeur (mm)']]] }[it.type];
   const field = ([k, l, t, opts]) => t === 'select'
     ? `<label>${l} <select data-k="${k}">${opts.map(([v, n]) => `<option value="${v}"${it[k] === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`
+    : t === 'fcap'
+    ? `<div>${l}</div><div class="caps">${Object.entries(FCAPS).map(([id, c]) => `<button type="button" data-cap="${id}" class="${(it.cap || '') === id ? 'on' : ''}"><svg viewBox="-11 -12 22 24">${realRect({...it, cap:id, x:0, y:0, w:2, h:22, r:1}, -1)}</svg>${c.name}</button>`).join('')}</div>`
     : t === 'cap'
     ? `<div>${l}</div><div class="caps">${Object.entries(CAPS).map(([id, c]) => `<button type="button" data-cap="${id}" class="${(it.cap || '') === id ? 'on' : ''}"><svg viewBox="-14 -14 28 28">${realSvg({...it, cap:id, x:0, y:0}, -1)}</svg>${c.name}</button>`).join('')}</div>`
     : t === 'font'
@@ -672,7 +790,15 @@ function renderProps() {
   const head = rows.slice(0, 2), more = rows.slice(2); // l'essentiel d'abord : position et rotation
   p.innerHTML = `<b class="ptitle">${esc(itemName(it))}</b>` + head.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')
     + `<div class="row"><button id="del" title="Supprimer">✕</button><button id="dup" title="Dupliquer">⧉</button><button id="cx" title="Centrer en X">⇹</button>`
+    + `<button id="rep" title="Répéter en ligne ou en grille">⠿ Répéter</button>`
+    + (it.gid ? `<button id="ungroup" title="Ces éléments se déplacent ensemble (Maj = déplacer seul)">⛓ Dégrouper</button>` : '')
     + (more.length ? `<button id="more">${propsOpen ? '− Moins' : '⋯ Plus'}</button>` : '') + `</div>`
+    + (repOpen ? `<div class="morerows"><div class="prow">
+        <label>Colonnes <input data-r="nx" type="number" min="1" step="1" value="${rep.nx}"></label>
+        <label>Écart X (mm) <input data-r="dx" type="number" step="1" value="${rep.dx}"></label>
+        <label>Lignes <input data-r="ny" type="number" min="1" step="1" value="${rep.ny}"></label>
+        <label>Écart Y (mm) <input data-r="dy" type="number" step="1" value="${rep.dy}"></label>
+        <button id="repgo">Créer</button><button id="rephp" title="Écart X = 2 HP">2 HP</button></div></div>` : '')
     + (more.length && propsOpen ? `<div class="morerows">${more.map(r => `<div class="prow">${r.map(field).join('')}</div>`).join('')}</div>` : '');
   p.querySelectorAll('input, select[data-k]').forEach(inp => {
     inp.oninput = () => {
@@ -688,6 +814,11 @@ function renderProps() {
   $('cx').onclick = () => { it.x = +(W()/2).toFixed(2); render(); };
   p.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => rotate(+b.dataset.rot));
   if ($('more')) $('more').onclick = () => { propsOpen = !propsOpen; renderProps(); };
+  $('rep').onclick = () => { repOpen = !repOpen; renderProps(); paint(); };
+  if ($('ungroup')) $('ungroup').onclick = () => { const g = it.gid; state.items.forEach(o => { if (o.gid === g) delete o.gid; }); render(); msg('Série dégroupée'); };
+  p.querySelectorAll('[data-r]').forEach(inp => inp.oninput = () => { rep[inp.dataset.r] = +inp.value; paint(); });
+  if ($('repgo')) $('repgo').onclick = repeatSel;
+  if ($('rephp')) $('rephp').onclick = () => { rep.dx = +(2*HP).toFixed(2); renderProps(); };
 }
 
 // Sélecteur de police maison : un <select> natif n'affiche pas les options dans leur police sur macOS
@@ -759,6 +890,7 @@ $('clear').onclick = () => { // deux clics : pas de boîte de dialogue, et ⌘Z 
 
 // ---------- Lecture sûre d'un module (fichier d'un ami, stockage local) ----------
 
+const oldScrew = v => v === 'phillips' ? 'cruci' : v; // profil retiré (doublon de la cruciforme)
 const num = (v, d, lo = -1e4, hi = 1e4) => Number.isFinite(+v) ? Math.min(hi, Math.max(lo, +v)) : d;
 const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
 function cleanSvg(doc) {
@@ -770,6 +902,7 @@ function cleanSvg(doc) {
 function normItem(it) {
   if (!it || typeof it !== 'object') return null;
   const o = {type: it.type, x: num(it.x, 0), y: num(it.y, 0)};
+  if (typeof it.gid === 'string' && /^[\w-]{1,16}$/.test(it.gid)) o.gid = it.gid;
   const rot = num(it.rot, 0, -360, 360) % 360; if (rot) o.rot = rot;
   const font = FONTS[it.font] ? it.font : '';
   switch (it.type) {
@@ -777,10 +910,17 @@ function normItem(it) {
       Object.assign(o, {kind: KINDS.includes(it.kind) ? it.kind : 'hole', d: num(it.d, 4, 0.5, 60), label: str(it.label, 40), size: num(it.size, 2.5, 0.5, 40), font});
       if (COLORED.includes(o.kind)) o.color = /^#[0-9a-f]{3,8}$/i.test(it.color) ? it.color : '#e22222';
       if (KNOBS.includes(o.kind) && CAPS[it.cap]) o.cap = it.cap;
-      if (o.kind === 'toggle') o.pos = ['up', 'mid', 'down'].includes(it.pos) ? it.pos : 'up';
+      if (o.kind === 'toggle' || o.kind === 'toggle12') o.pos = ['up', 'mid', 'down'].includes(it.pos) ? it.pos : 'up';
+      if (o.kind === 'insert' && SCREWS.includes(oldScrew(it.screw))) o.screw = oldScrew(it.screw);
       return o;
     case 'text': return Object.assign(o, {text: str(it.text, 80), size: num(it.size, 4, 0.5, 80), bold: !!it.bold, font});
-    case 'rect': return Object.assign(o, {w: num(it.w, 10, 0.5, 500), h: num(it.h, 6, 0.5, 500), r: num(it.r, 0, 0, 100)}, RECT_KINDS.includes(it.kind) ? {kind: it.kind} : {});
+    case 'rect': Object.assign(o, {w: num(it.w, 10, 0.5, 500), h: num(it.h, 6, 0.5, 500), r: num(it.r, 0, 0, 100)}, RECT_KINDS.includes(it.kind) ? {kind: it.kind} : {});
+      if (o.kind === 'fader' && FCAPS[it.cap]) o.cap = it.cap;
+      if (o.kind === 'slide' && it.m2) o.m2 = true;
+      if (['fader', 'rled'].includes(o.kind) && /^#[0-9a-f]{3,8}$/i.test(it.color)) o.color = it.color;
+      return o;
+    case 'plate': return Object.assign(o, {w: num(it.w, 30, 5, 400), h: num(it.h, 45, 5, 400), off: num(it.off, 15, 2, 200)},
+      SCREWS.includes(oldScrew(it.screw)) ? {screw: oldScrew(it.screw)} : {});
     case 'bar': return Object.assign(o, {n: Math.round(num(it.n, 8, 1, 30)), pitch: num(it.pitch, 5, 1, 30), d: num(it.d, 3.1, 0.5, 15), vertical: it.vertical !== false});
     case 'logo': {
       Object.assign(o, {w: num(it.w, 20, 1, 500), ratio: num(it.ratio, 1, 0.01, 100)});
@@ -806,7 +946,7 @@ function normalize(raw) {
   s.hp = Math.round(num(raw.hp, 8, 1, 104));
   s.w = raw.w == null ? null : num(raw.w, null, 1, 600);
   s.nholes = ['auto', '1', '2', '3', '4'].includes(String(raw.nholes)) ? String(raw.nholes) : 'auto';
-  if (SCREWS.includes(raw.screw)) s.screw = raw.screw;
+  if (SCREWS.includes(oldScrew(raw.screw))) s.screw = oldScrew(raw.screw);
   if (FONTS[raw.font]) s.font = raw.font;
   s.items = (Array.isArray(raw.items) ? raw.items : []).map(normItem).filter(Boolean);
   return s;
@@ -844,6 +984,38 @@ $('lib').onclick = e => {
   }
 };
 $('libSave').onclick = () => { if (saveToLib()) { renderLib(); msg(`« ${state.name || 'Sans nom'} » enregistré dans la bibliothèque`); } };
+// Exemples de modules classiques
+const exT = (text, x, y, size = 4) => ({type:'text', text, x, y, size, bold:true});
+const exH = (kind, d, x, y, label = '', extra = {}) => ({type:'hole', kind, d, x, y, label, size:2.5, ...extra});
+const exJ = (x, y, label) => exH('jack', 6, x, y, label);
+const EXAMPLES = {
+  'VCO': {hp:8, items:[exT('VCO', 20.15, 15, 5),
+    exH('pot16', 7.5, 20.15, 40, 'TUNE', {cap:'jupe27'}),
+    exH('pot9', 7, 11, 62, 'FINE', {cap:'alu9'}), exH('pot9', 7, 29.3, 62, 'FM', {cap:'alu9'}),
+    exH('toggle', 6.2, 11, 80, 'OCT', {pos:'up'}), exH('led', 3.1, 29.3, 80, '', {color:'#ff3b30'}),
+    exJ(8, 94, '1V/OCT'), exJ(20.15, 94, 'FM'), exJ(32.3, 94, 'SYNC'),
+    exJ(8, 112, 'SAW'), exJ(20.15, 112, 'SQR'), exJ(32.3, 112, 'SIN')]},
+  'Filtre': {hp:8, items:[exT('VCF', 20.15, 15, 5),
+    exH('pot16', 7.5, 20.15, 40, 'CUTOFF', {cap:'jupe27'}),
+    exH('pot9', 7, 11, 62, 'RES', {cap:'alu9'}), exH('pot9', 7, 29.3, 62, 'FM', {cap:'alu9'}),
+    exJ(8, 84, 'IN'), exJ(20.15, 84, 'FM'), exJ(32.3, 84, 'CV'),
+    exJ(8, 104, 'LP'), exJ(20.15, 104, 'BP'), exJ(32.3, 104, 'HP')]},
+  'ADSR': {hp:8, items:[exT('ADSR', 20.15, 15, 4.5),
+    ...[5.6, 15.3, 25, 34.7].map(x => ({type:'rect', kind:'fader', x, y:48, w:2, h:35, r:1})),
+    ...['A', 'D', 'S', 'R'].map((l, k) => exT(l, [5.6, 15.3, 25, 34.7][k], 72, 3.5)),
+    exH('button', 7.2, 20.15, 84, 'MAN', {color:'#e8a33d'}),
+    exJ(8, 100, 'GATE'), exJ(20.15, 100, 'RTG'), exJ(32.3, 100, 'OUT')]},
+  'Mixeur': {hp:6, items:[exT('MIX', 15, 15, 5),
+    ...['CH1', 'CH2', 'CH3', 'CH4'].map((l, k) => exH('pot9', 7, 15, 32 + k*18, l, {cap:'alu9'})),
+    exJ(9, 108, 'IN'), exJ(21, 108, 'OUT')]},
+};
+$('exrow').innerHTML = Object.keys(EXAMPLES).map(n => `<button data-ex="${n}">${n}</button>`).join('');
+$('exrow').onclick = e => {
+  const n = e.target.dataset?.ex;
+  if (!n) return;
+  state = normalize({...EXAMPLES[n], name: n}); sel = null; syncInputs(); render();
+  msg(`Exemple « ${n} » chargé (⌘Z pour revenir)`);
+};
 $('newMod').onclick = () => { state = newState(); sel = null; syncInputs(); $('secPanel').open = true; render(); msg('Nouveau module (⌘Z pour revenir au précédent)'); };
 
 function download(name, data, type) {
@@ -954,7 +1126,12 @@ async function textsToPaths(markup) {
 }
 $('exSvg').onclick = async () => {
   const w = W(), h = H(), keepSel = sel; sel = null;
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">${panelSvg(false)}</svg>`;
+  let tw = w, th = h, extra = ''; // plateformes arrière : découpées à côté de la face, avec 10 mm de marge
+  for (const pl of state.items.filter(i => i.type === 'plate')) {
+    extra += `<g transform="translate(${tw + 10 + pl.w/2} ${pl.h/2})">${plateCut(pl)}</g>`;
+    tw += 10 + pl.w; th = Math.max(th, pl.h);
+  }
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${tw}mm" height="${th}mm" viewBox="0 0 ${tw} ${th}">${panelSvg(false)}${extra}</svg>`;
   sel = keepSel;
   if ($('topath').checked) {
     try { out = await textsToPaths(out); }
@@ -967,8 +1144,8 @@ $('exSvg').onclick = async () => {
 
 // Modèles 3D réels (Jolin, CC BY 4.0) : mètres, axe du composant sur +Y ; chargés à la demande
 const MODELS = { jack:{f:'jack', z:-10.9}, pot9:{f:'pot9_body', z:-6.3, top:21.3}, pot16:{f:'pot16_body', z:-3.6, top:18.6},
-                 toggle:{f:'toggle', z:-6.6}, button:{f:'button', z:-12.9} };
-const CAP_MODELS = { '':{f:'knob_std', d:15.66, h:14.6}, alu9:{f:'knob_alu9', d:8, h:14}, jupe27:{f:'knob_jupe27', d:18.8, h:14.7} };
+                 toggle:{f:'toggle', z:-6.6}, toggle12:{f:'toggle', z:-6.6, s:2}, button:{f:'button', z:-12.9} };
+const CAP_MODELS = { '':{f:'knob_std', d:15.66, h:14.6}, alu9:{f:'knob_alu9', d:8, h:14}, kna21:{f:'knob_kna', d:21.2, h:14}, jupe27:{f:'knob_jupe27', d:18.8, h:14.7} };
 const modelCache = {};
 // Les .glb ne peuvent pas être lus depuis un fichier local (sécurité du navigateur) : il faut la version en ligne
 const MODEL_ERR = () => location.protocol === 'file:'
@@ -999,7 +1176,7 @@ async function init3d() {
   renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.8;
   box.prepend(renderer.domElement);
   const scene = new T.Scene();
-  scene.background = new T.Color('#2a2c30');
+  scene.background = new T.Color(css('--v3d') || '#2a2c30');
   scene.environment = new T.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.6;
   const camera = new T.PerspectiveCamera(30, 1, 1, 5000);
@@ -1008,6 +1185,7 @@ async function init3d() {
   sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
   scene.add(sun, sun.target);
   const draw = () => renderer.render(scene, camera); // rendu à la demande : pas de boucle permanente
+  scene3d = scene; draw3d = draw; // pour le changement de thème
   controls.addEventListener('change', draw);
   new ResizeObserver(() => {
     const {clientWidth: w, clientHeight: h} = box;
@@ -1086,7 +1264,9 @@ async function build3d() {
     for (const it of state.items) {
       const round = (x, y, r) => { if (!inside(x, y, r)) return; const [cx, cy] = P(x, y), p = new T.Path(); p.absarc(cx, cy, r, 0, Math.PI*2, true); shape.holes.push(p); };
       if (it.type === 'hole') round(it.x, it.y, it.d/2);
+      if (it.type === 'plate') plateHoles(it).forEach(([px, py]) => round(...rotPt(it, px, py), PLATE.d/2));
       if (it.type === 'bar') barPts(it).forEach(([bx, by]) => round(...rotPt(it, bx, by), it.d/2));
+      if (it.kind === 'slide' && it.m2) slidePts(it).forEach(([px, py]) => round(...rotPt(it, px, py), SLIDE.d/2));
       if (it.type === 'rect' && inside(it.x, it.y, Math.max(it.w, it.h)/2)) { const [cx, cy] = P(it.x, it.y);
         shape.holes.push(new T.Path([[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([sx, sy]) => new T.Vector2(...P(...rotPt(it, it.x + sx*it.w/2, it.y + sy*it.h/2)))))); }
     }
@@ -1095,8 +1275,8 @@ async function build3d() {
       p.moveTo(a, cy - r); p.lineTo(b, cy - r); p.absarc(b, cy, r, -Math.PI/2, Math.PI/2, false); p.lineTo(a, cy + r); p.absarc(a, cy, r, Math.PI/2, Math.PI*1.5, false);
       shape.holes.push(p);
     }
-    const plate = { alu: M('#aeb3b9', 0.9, 0.42), noir: M('#18181a', 0.4, 0.45), blanc: M('#efeee9', 0.05, 0.55), mdf: M('#b88c60', 0, 0.9) }[pcol];
-    const thick = pcol === 'mdf' ? 3 : 2; // MDF 3 mm, aluminium 2 mm
+    const plate = { alu: M('#aeb3b9', 0.9, 0.42), noir: M('#18181a', 0.4, 0.45), blanc: M('#efeee9', 0.05, 0.55), mdf: M('#b88c60', 0, 0.9), pcb: M('#0a5c33', 0.05, 0.4) }[pcol];
+    const thick = pcol === 'mdf' ? 3 : pcol === 'pcb' ? 1.6 : 2; // MDF 3 mm, PCB FR4 1,6 mm, aluminium 2 mm
     const panel = mesh(new T.ExtrudeGeometry(shape, {depth:thick, bevelEnabled:false, curveSegments:40}), plate);
     panel.position.z = -thick; g.add(panel);
 
@@ -1111,6 +1291,8 @@ async function build3d() {
     for (const m of mountHoles()) {
       const [cx, cy] = P(m.x, m.y), s = new T.Group();
       const cross = z => [box(2.8, 0.5, 0.4, mat.dark, 0, 0, z), box(0.5, 2.8, 0.4, mat.dark, 0, 0, z)];
+      const sm = $('detail').checked && SCREW_MODELS[state.screw];
+      if (sm) { try { s.add(await modelPart(sm.f, 0, sm.s)); s.position.set(cx, cy, FRONT); g.add(s); continue; } catch { msg(MODEL_ERR()); } }
       if (state.screw === 'bombee') { // calotte : base Ø5,6, hauteur 1,5 mm
         const R = (2.8**2 + 1.5**2) / 3, dome = mesh(new T.SphereGeometry(R, 32, 16, 0, Math.PI*2, 0, Math.asin(2.8/R)), mat.metal);
         dome.rotation.x = Math.PI/2; dome.position.z = 1.5 - R; s.add(dome, ...cross(1.35));
@@ -1132,13 +1314,32 @@ async function build3d() {
       const dome = mesh(new T.SphereGeometry(r, 32, 16, 0, Math.PI*2, 0, Math.PI/2), lm); dome.rotation.x = Math.PI/2; dome.position.z = 1.2;
       const o = new T.Group(); o.add(cyl(r, 1.2, lm), dome); return o; };
     for (const it of $('hide').checked ? [] : state.items) { // « Sans composants » : plaque percée et gravure seules
+      if (it.type === 'plate') { // plaque support : entretoises M3 derrière la face, vis traversantes devant
+        const shp = new T.Shape([[-1,-1], [1,-1], [1,1], [-1,1]].map(([sx, sy]) => new T.Vector2(sx*it.w/2, sy*it.h/2)));
+        const loc = plateHoles({...it, x:0, y:0});
+        for (const [px, py] of loc) { const q = new T.Path(); q.absarc(px, -py, PLATE.d/2, 0, Math.PI*2, true); shp.holes.push(q); }
+        const c = new T.Group(), [cx, cy] = P(it.x, it.y);
+        const back = mesh(new T.ExtrudeGeometry(shp, {depth:PLATE.th, bevelEnabled:false, curveSegments:24}), M('#0a5c33', 0.05, 0.5));
+        back.position.z = -thick - it.off - PLATE.th; c.add(back);
+        for (const [px, py] of loc) {
+          const st = new T.Group(), hd = new T.Group();
+          st.add(cyl(2.75, it.off, mat.metal, -thick - it.off, 24));
+          const sm = $('detail').checked && SCREW_MODELS[it.screw || state.screw];
+          if (sm) { try { hd.add(await modelPart(sm.f, 0, sm.s)); } catch { msg(MODEL_ERR()); } }
+          if (!hd.children.length) hd.add(cyl(2.8, 1.1, mat.metal, 0, 32), box(2.8, 0.5, 0.4, mat.dark, 0, 0, 1.05), box(0.5, 2.8, 0.4, mat.dark, 0, 0, 1.05));
+          hd.position.z = FRONT; st.add(hd);
+          st.position.set(px, -py, 0); c.add(st);
+        }
+        c.position.set(cx, cy, 0); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+        continue;
+      }
       if (it.type === 'bar') {
         barPts(it).forEach(([bx, by], k) => { const o = led(it.d/2, barColor(k, it.n), barLit(k, it.n)), [px, py] = P(...rotPt(it, bx, by)); o.position.set(px, py, FRONT); g.add(o); });
         continue;
       }
       if (it.type === 'rect' && it.kind) {
         const [cx, cy] = P(it.x, it.y), c = new T.Group();
-        if (it.kind === 'fader' && $('detail').checked) {
+        if (it.kind === 'fader' && $('detail').checked && !it.cap) { // capuchon standard = modèle réel
           try { // fader réel (course 45 mm) mis à l'échelle de la fente
             const long = Math.max(it.w, it.h), part = await modelPart('fader', -7.6, long/45);
             if (it.h >= it.w) part.rotation.z = Math.PI/2;
@@ -1146,9 +1347,33 @@ async function build3d() {
             continue;
           } catch (err) { msg(MODEL_ERR()); }
         }
+        if (it.kind === 'slide') { // platine derrière la face, curseur qui dépasse de 2 mm
+          const v = it.h > it.w, L = (v ? it.h : it.w) + 11, T = (v ? it.w : it.h) + 4.5, cl = (v ? it.h : it.w)*0.55;
+          c.add(box(v ? T : L, v ? L : T, 5, mat.black, 0, 0, -thick - 2.5),
+                box(v ? it.w : cl, v ? cl : it.h, 2.2, mat.knurl, 0, 0, 1.1));
+          c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+          continue;
+        }
         if (it.kind === 'fader') {
-          c.add(box(1.2, 1.2, 1.5, mat.dark, 0, 0, 0.25), box(9, 12, 7, mat.black, 0, 0, 4.5), box(8, 0.5, 0.1, mat.white, 0, 0, 8.05),
-                ...[-3.5, -2.3, 2.3, 3.5].map(o => box(7.2, 0.35, 0.1, mat.dark, 0, o, 8.05)));
+          const f = FCAPS[it.cap] || FCAPS[''], vert = it.h >= it.w, cw = vert ? f.w : f.h, ch = vert ? f.h : f.w;
+          const capMat = f.col ? M(it.color || '#e22222', 0.05, 0.4) : mat.black;
+          c.add(box(1.2, 1.2, 1.5, mat.dark, 0, 0, 0.25), box(cw, ch, f.z, capMat, 0, 0, 0.5 + f.z/2));
+          c.add(f.alu ? box(cw - 1.6, ch - 1.6, 0.3, mat.alu, 0, 0, 0.5 + f.z + 0.1)
+                      : box(vert ? cw*0.9 : 0.5, vert ? 0.5 : ch*0.9, 0.1, mat.white, 0, 0, 0.5 + f.z + 0.06));
+        } else if (it.kind === 'rled' && $('detail').checked) {
+          try { // LED carrée réelle, pattes comprises (modèle 3,2 mm de large)
+            const part = await modelPart('led_square', -2.8, Math.max(it.w, it.h)/3.2);
+            if (it.color) { const col3 = new T.Color(it.color); // le modèle est une LED rouge : on la repeint si une couleur est choisie
+              part.traverse(o => { if (o.isMesh && o.material?.color && o.material.color.r > 0.25) {
+                o.material = o.material.clone(); o.material.color.copy(col3); o.material.emissive = col3.clone(); o.material.emissiveIntensity = 0.45; } });
+            }
+            c.add(part); c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
+            continue;
+          } catch { msg(MODEL_ERR()); }
+          const ext = 0, pw = it.w, ph = it.h, lit = true;
+          const tex = await svgTexture(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pw/2} ${-ph/2} ${pw} ${ph}" width="${Math.round(pw*10)}" height="${Math.round(ph*10)}">${REAL_DEFS}${realRect({...it, x:0, y:0}, -1)}</svg>`, Math.round(pw*10), Math.round(ph*10));
+          const face = new T.Mesh(new T.PlaneGeometry(pw, ph), new T.MeshBasicMaterial({map:tex, transparent:true}));
+          face.position.z = 1.22; c.add(box(pw, ph, 1.2, mat.black, 0, 0, 0.6), face);
         } else {
           const ext = {vu:3, oled:2, rled:0, rocker:2}[it.kind], pw = it.w + ext, ph = it.h + ext, lit = it.kind === 'oled' || it.kind === 'rled';
           const tex = await svgTexture(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pw/2} ${-ph/2} ${pw} ${ph}" width="${pw*10}" height="${ph*10}">${REAL_DEFS}${realRect({...it, x:0, y:0}, -1)}</svg>`, Math.round(pw*10), Math.round(ph*10));
@@ -1161,7 +1386,7 @@ async function build3d() {
       }
       if (it.type !== 'hole') continue;
       const [cx, cy] = P(it.x, it.y), c = new T.Group(), col = M(it.color || '#e22222', 0.05, 0.4);
-      if ($('detail').checked && MODELS[it.kind] && !(it.kind === 'toggle' && it.pos === 'mid')) {
+      if ($('detail').checked && MODELS[it.kind] && !(it.kind.startsWith('toggle') && it.pos === 'mid')) {
         try { // modèle réel ; les potentiomètres reçoivent en plus leur bouton
           const m = MODELS[it.kind];
           let zOff = m.z, cap = null, capScale = 1;
@@ -1170,15 +1395,17 @@ async function build3d() {
             capScale = 2*capR(it, it.kind === 'pot16' ? 8.5 : 5.5) / cap.d;
             if (m.top) zOff = +(cap.h*capScale - 1 - m.top).toFixed(2);
           }
-          const part = await modelPart(m.f, zOff);
-          if (it.kind === 'toggle' && it.pos === 'down') part.rotation.z = Math.PI;
+          const part = await modelPart(m.f, zOff, m.s || 1);
+          if (it.kind.startsWith('toggle') && it.pos === 'down') part.rotation.z = Math.PI;
           c.add(part);
+          if (it.kind === 'jack') c.add(await modelPart('nut_jack', 0)); // écrou moleté du jack
+          if (KNOBS.includes(it.kind)) c.add(await modelPart('washer_pot', 0), await modelPart('nut_pot', 0.4)); // rondelle + écrou du potentiomètre
           if (cap) c.add(await modelPart(cap.f, 0, capScale)); // base du bouton au ras de la plaque, dessus vers l'avant
           c.position.set(cx, cy, FRONT); c.rotation.z = -(it.rot || 0)*Math.PI/180; g.add(c);
           continue;
         } catch (err) { msg(MODEL_ERR()); } // hors ligne ou fichier local : repli sur les formes simples
       }
-      if (BODY[it.kind]) c.add(box(...BODY[it.kind], 10, M('#2f5d9a', 0.1, 0.5), 0, 0, -thick - 5)); // corps derrière la plaque
+      if (BODY[it.kind] && it.kind !== 'encoder') c.add(box(...BODY[it.kind], 10, M('#2f5d9a', 0.1, 0.5), 0, 0, -thick - 5)); // corps derrière la plaque
       const mark = (y0, len, z) => box(0.5, len, 0.12, mat.white, 0, y0 + len/2, z + 0.06);
       if (KNOBS.includes(it.kind) && it.cap === 'alu9')
         c.add(cyl(4.5, 11, mat.knurl, 0, 30), cyl(3.5, 0.3, mat.alu, 11), mark(2.2, 1.1, 11.3));
@@ -1189,7 +1416,11 @@ async function build3d() {
         case 'jack': c.add(cyl(4, 1.6, mat.metal, 0, 40), cyl(3, 3.4, mat.metal, 0.03), cyl(1.8, 0.1, mat.dark, 3.35)); break;
         case 'pot9': c.add(cyl(5.5, 11, mat.black, 0, 64, 5.1), mark(1.4, 3.4, 11)); break;
         case 'pot16': c.add(cyl(8.5, 14, mat.black, 0, 64, 7.9), mark(2.1, 5.6, 14)); break;
-        case 'encoder': c.add(cyl(6, 12, mat.knurl, 0, 28), mark(1.5, 3.7, 12)); break;
+        case 'encoder': { // codeur EC11 : boîtier serti 12×12×7, canon fileté Ø7, axe moleté Ø6 méplat
+          c.add(box(12, 12, 6.7, mat.metal, 0, 0, -thick - 3.35), box(6.2, 1.6, 0.3, mat.metal, 0, 6.8, -thick - 6.5), box(6.2, 1.6, 0.3, mat.metal, 0, -6.8, -thick - 6.5));
+          for (const px of [-2.5, 0, 2.5]) c.add(box(0.5, 0.3, 3, mat.metal, px, 6, -thick - 8.2));
+          for (const px of [-2, 2]) c.add(box(0.5, 0.3, 3, mat.metal, px, -6, -thick - 8.2));
+          c.add(cyl(3.5, 5, mat.metal, 0, 24), cyl(4, 1.6, mat.metal, 0.03, 6), cyl(3, 9, mat.knurl, 5, 24), cyl(2.9, 0.3, mat.dark, 14), mark(1.4, 2.6, 14.1)); break; }
         case 'led': c.add(led(it.d/2, it.color, true)); break;
         case 'toggle': { // écrou 8 mm, rondelle, canon fileté Ø6, levier conique incliné de 18° (haut / milieu / bas)
           const tilt = it.pos === 'down' ? -1 : it.pos === 'mid' ? 0 : 1, lever = new T.Group();
@@ -1197,7 +1428,21 @@ async function build3d() {
           stick.position.y = 4.5; tip.position.y = 9; lever.add(stick, tip);
           lever.position.z = 7; lever.rotation.x = (90 - 18*tilt) * Math.PI / 180;
           c.add(cyl(4.62, 1.6, mat.metal, 0, 6), cyl(4.3, 0.4, mat.metal, 1.6), cyl(3, 5, mat.metal, 2.03, 40), lever); break; }
+        case 'toggle12': { // repli sans modèle : le même inverseur au double de la taille
+          const tilt = it.pos === 'down' ? -1 : it.pos === 'mid' ? 0 : 1, lever = new T.Group();
+          const stick = mesh(new T.CylinderGeometry(1.8, 2.5, 18, 24), mat.metal), tip = mesh(new T.SphereGeometry(2.5, 20, 12), mat.metal);
+          stick.position.y = 9; tip.position.y = 18; lever.add(stick, tip);
+          lever.position.z = 12; lever.rotation.x = (90 - 18*tilt) * Math.PI / 180;
+          c.add(cyl(8.1, 3, mat.metal, 0, 6), cyl(7.5, 0.8, mat.metal, 3), cyl(6.1, 8, mat.metal, 3.8, 40), lever); break; }
         case 'arcade': c.add(cyl(it.d/2 + 3, 3, col, 0, 64, it.d/2 + 2.4), cyl(it.d/2 - 1.5, 5, col, 0.03, 64)); break;
+        case 'insert': { // tête de vis au choix + entretoise filetée derrière la plaque
+          const st = it.screw || state.screw, m = $('detail').checked && SCREW_MODELS[st];
+          if (m) { try { c.add(await modelPart(m.f, 0, m.s), await modelPart('standoff_m3', 0, 1, true)); break; } catch { msg(MODEL_ERR()); } }
+          if (st === 'fraisee') c.add(cyl(2.9, 0.06, mat.metal), cyl(1.15, 0.08, mat.dark, 0.01, 6));
+          else if (st === 'chc') c.add(cyl(2.75, 3, mat.metal, 0, 40, 2.55), cyl(1.3, 0.08, mat.dark, 2.97, 6));
+          else c.add(cyl(2.8, 1.1, mat.metal, 0, 32, 2.6), box(2.8, 0.5, 0.4, mat.dark, 0, 0, 1.05), box(0.5, 2.8, 0.4, mat.dark, 0, 0, 1.05));
+          try { c.add(await modelPart('standoff_m3', 0, 1, true)); } catch {}
+          break; }
         case 'jack635': c.add(cyl(7, 1.8, mat.metal, 0, 6), cyl(5, 4, mat.metal, 0.03), cyl(3.25, 0.1, mat.dark, 4)); break;
         case 'dc': c.add(cyl(6.5, 2, mat.metal, 0, 36), cyl(5.2, 4, mat.metal, 0.03), cyl(3.2, 0.1, mat.dark, 4), cyl(1.05, 3, mat.metal, 1.3)); break;
         case 'midi': { // prise DIN derrière la plaque, vue à travers le trou
@@ -1269,47 +1514,61 @@ const SYMBOLS = [
   ['Chat modulaire', 'M4 21l2-14 4.5 3.5h3L18 7l2 14zM9.5 14v.5M14.5 14v.5M12 17l-1.5 1.5M12 17l1.5 1.5'],
 ];
 const symbolItem = d => ({type:'logo', svg:`<g fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></g>`, vb:'0 0 24 24', ratio:1, w:12});
-const hole = (d, label, kind, color = '#e22222') => () => ({type:'hole', kind, d, label, size:2.5, ...(COLORED.includes(kind) ? {color} : {}), ...(kind === 'toggle' ? {pos:'up'} : {})});
+const hole = (d, label, kind, color = '#e22222') => () => ({type:'hole', kind, d, label, size:2.5, ...(COLORED.includes(kind) ? {color} : {}), ...(kind.startsWith('toggle') ? {pos:'up'} : {})});
 const GROUPS = [
   ['Entrées / sorties', [['Jack 3,5 mm', hole(6, 'IN', 'jack')], ['Jack 6,35 mm', hole(9.5, 'OUT', 'jack635')], ['MIDI DIN', hole(15.5, 'MIDI IN', 'midi')], ['Alim. DC', hole(11, '12 V DC', 'dc')]]],
   ['Contrôles', [['Pot 9 mm', hole(7, 'LEVEL', 'pot9')], ['Pot 16 mm', hole(7.5, 'FREQ', 'pot16')], ['Encodeur', hole(7, '', 'encoder')], ['Fader 30 mm', () => ({type:'rect', kind:'fader', w:2, h:35, r:1})],
-                 ['Inter. à levier', hole(6.2, '', 'toggle')], ['Inter. on/off', () => ({type:'rect', kind:'rocker', w:7, h:13, r:0.5})], ['Bouton poussoir', hole(7.2, '', 'button')],
+                 ['Mini inter. levier', hole(6.2, '', 'toggle')], ['Inter. levier Ø12', hole(12.2, '', 'toggle12')], ['Inter. on/off', () => ({type:'rect', kind:'rocker', w:7, h:13, r:0.5})], ['Inter. glissière', () => ({type:'rect', kind:'slide', w:7, h:2.5, r:0.4})], ['Bouton poussoir', hole(7.2, '', 'button')],
                  ['Bouton moyen 11,5 mm', hole(11.5, '', 'bigbutton', '#2d7bff')], ['Gros bouton 15 mm', hole(15, '', 'bigbutton', '#f2c200')],
                  ['Bouton d\'arcade', hole(27, '', 'arcade', '#e8232b')]]],
   ['Voyants et affichage', [['LED 3 mm', hole(3.1, '', 'led')], ['LED 5 mm', hole(5.1, '', 'led')], ['LED rect. RGB', () => ({type:'rect', kind:'rled', w:5, h:2.5, r:0.3})], ['Barre de LED', () => ({type:'bar', n:8, pitch:5, d:3.1, vertical:true})],
                             ['VU-mètre', () => ({type:'rect', kind:'vu', w:35, h:28, r:1.5})], ['Écran OLED', () => ({type:'rect', kind:'oled', w:24, h:13, r:0.5})]]],
   ['Symboles à graver', SYMBOLS.map(([name, d]) => [name, () => symbolItem(d)])],
-  ['Découpe et gravure', [['Trou libre', hole(4, '', 'hole')], ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})], ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})]]]];
+  ['Découpe et gravure', [['Insert M3', hole(3.2, '', 'insert')], ['Trou libre', hole(4, '', 'hole')], ['Découpe rect.', () => ({type:'rect', w:10, h:6, r:0})], ['Texte', () => ({type:'text', text:'MODULE', size:4, bold:true})],
+                           ['Plateforme arrière', () => ({type:'plate', w:30, h:45, off:15})]]]];
 const PALETTE = GROUPS.flatMap(([, list]) => list);
 function place(make, x, y) {
   add({...make(), x:snap(x), y:snap(y)});
   if (state.items.length === 1) $('secPanel').open = false; // premier ajout : panneau réglé, on replie
 }
 { let k = 0;
+  const tabs = document.createElement('div'); tabs.id = 'paltabs'; $('presets').append(tabs);
   for (const [title, list] of GROUPS) {
-    const grp = document.createElement('details'); grp.className = 'palgrp'; grp.open = !title.startsWith('Symboles');
-    grp.innerHTML = `<summary>${title}</summary><div class="pal"></div>`;
-    $('presets').append(grp);
-    const box = grp.querySelector('.pal');
+    const box = document.createElement('div'); box.className = 'pal'; box.hidden = !!k;
+    $('presets').append(box);
     for (const [name, make] of list) {
       const t = document.createElement('div'), it = {...make(), x:0, y:0}, idx = k++;
       t.className = 'tile'; t.draggable = true;
       const art = it.type === 'hole' ? realSvg(it, -1) : it.type === 'rect' ? realRect(it, -1) : it.type === 'bar' ? realBar(it, -1)
-        : it.type === 'logo' ? `<g transform="translate(-8 -8) scale(0.667)">${it.svg}</g>`
+        : it.type === 'logo' ? `<g transform="translate(-8 -8) scale(0.667)">${it.svg.replaceAll('#000', 'currentColor')}</g>` // le trait suit la couleur du thème
+        : it.type === 'plate' ? `<rect x="${-it.w/2}" y="${-it.h/2}" width="${it.w}" height="${it.h}" rx="1" fill="#2f9e6e22" stroke="currentColor" stroke-width="0.8"/>`
+            + plateHoles({...it, x:0, y:0}).map(([px, py]) => `<circle cx="${px}" cy="${py}" r="1.6" fill="currentColor"/>`).join('')
         : '<text x="0" y="2.5" font-size="7" font-weight="bold" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Aa</text>';
-      const e = Math.max(10, it.type === 'rect' ? Math.max(it.w, it.h)/2 + 3 : it.type === 'bar' ? (it.n - 1)*it.pitch/2 + it.d : it.type === 'hole' ? footR(it) + 1 : 0); // vignette à l'échelle de l'objet
+      const e = Math.max(10, it.type === 'plate' ? Math.max(it.w, it.h)/2 + 2 : it.type === 'rect' ? Math.max(it.w, it.h)/2 + 3 : it.type === 'bar' ? (it.n - 1)*it.pitch/2 + it.d : it.type === 'hole' ? footR(it) + 1 : 0); // vignette à l'échelle de l'objet
       t.innerHTML = `<svg viewBox="${-e} ${-e} ${2*e} ${2*e}">${art}</svg>${name}`;
       t.onclick = () => place(make, W()/2, H()/2);
       t.ondragstart = ev => ev.dataTransfer.setData('text/plain', idx);
       box.append(t);
     }
+    const rep = box.children[{'Contrôles':1, 'Voyants et affichage':4, 'Découpe et gravure':3}[title] || 0]; // vignette la plus parlante du groupe
+    const tab = document.createElement('button');
+    tab.className = box.hidden ? '' : 'on'; tab.title = title;
+    const short = {'Entrées / sorties':'E/S', 'Voyants et affichage':'Voyants', 'Symboles à graver':'Symboles', 'Découpe et gravure':'Découpe'}[title] || title;
+    tab.innerHTML = rep.querySelector('svg').outerHTML + `<span>${short}</span>`;
+    tab.onclick = () => {
+      for (const b of tabs.children) b.className = b === tab ? 'on' : '';
+      for (const p of $('presets').querySelectorAll('.pal')) p.hidden = p !== box;
+      $('iconbox').hidden = !title.startsWith('Symboles'); // la recherche d'icônes n'a de sens que sous Symboles
+    };
+    tabs.append(tab);
   }
+  $('iconbox').hidden = true;
 }
 { const t = document.createElement('div'); // vignette Logo : dans la dernière catégorie, pour se replier avec elle
   t.className = 'tile';
   t.innerHTML = '<svg viewBox="-10 -10 20 20"><path d="M-6 5L-1 -2L2 2L4 0L7 5Z" fill="#888"/><circle cx="3" cy="-4" r="2" fill="#bbb"/></svg>Logo';
   t.onclick = () => $('logofile').click();
-  document.querySelector('#presets .palgrp:last-of-type .pal').append(t); }
+  document.querySelector('#presets .pal:last-of-type').append(t); }
 
 // Recherche d'icônes Lucide (ISC), index et dessins chargés à la demande depuis le CDN
 const FR_EN = {onde:'wave', son:'audio volume', casque:'headphones', éclair:'zap', eclair:'zap', alimentation:'power', horloge:'clock', filtre:'filter',
@@ -1332,7 +1591,7 @@ async function iconSearch(q) {
   res.innerHTML = hits.length ? '' : '<p class="info">Aucune icône trouvée (les mots-clés sont surtout en anglais)</p>';
   for (const [name] of hits) {
     const t = document.createElement('div'); t.className = 'tile'; t.title = name;
-    t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></svg>${name.replace(/-/g, ' ')}`;
+    t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></svg>${name.replace(/-/g, ' ')}`;
     t.onclick = () => addIcon(name);
     res.append(t);
     fetch(`https://cdn.jsdelivr.net/npm/lucide-static@latest/icons/${name}.svg`).then(r => r.text()).then(txt => {
@@ -1408,6 +1667,15 @@ bind('fmt', 'fmt', false); bind('hp', 'hp'); bind('nholes', 'nholes', false); bi
 $('w').oninput = () => { state.w = +$('w').value || null; paint(); };
 $('w').onchange = render;
 $('name').oninput = () => { state.name = $('name').value; clearTimeout($('name').t); $('name').t = setTimeout(commit, 500); };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let scene3d = null, draw3d = null;
+const setTheme = t => {
+  document.documentElement.dataset.theme = $('theme').value = t;
+  localStorage.setItem('eurorack.theme', t);
+  if (scene3d) { scene3d.background.set(css('--v3d')); draw3d(); }
+};
+$('theme').onchange = e => setTheme(e.target.value);
+setTheme([...$('theme').options].some(o => o.value === localStorage.getItem('eurorack.theme')) ? localStorage.getItem('eurorack.theme') : 'clair');
 $('hide').oninput = render; $('detail').oninput = render; $('rails').oninput = render; $('cotes').oninput = render; $('grid').oninput = render; $('zoom').oninput = render; $('pcol').oninput = () => paint();
 function setView(v) {
   view = v;
@@ -1440,6 +1708,8 @@ svg.onpointerdown = e => {
   e.preventDefault();
   sel = +i; const p = pt(e), it = state.items[sel];
   drag = { dx: it.x - p.x, dy: it.y - p.y };
+  if (it.gid && !e.shiftKey) // toute la série suit, sauf avec Maj
+    drag.group = state.items.filter(o => o !== it && o.gid === it.gid).map(o => ({o, dx: o.x - it.x, dy: o.y - it.y}));
   svg.setPointerCapture(e.pointerId); svg.classList.add('dragging');
   renderProps(); paint();
 };
@@ -1465,6 +1735,7 @@ svg.onpointermove = e => {
     guideY = magnet(y, others.map(o => o.y));
     it.x = guideX ?? snap(x); it.y = guideY ?? snap(y);
   }
+  if (drag.group) for (const {o, dx, dy} of drag.group) { o.x = +(it.x + dx).toFixed(2); o.y = +(it.y + dy).toFixed(2); }
   paint();
 };
 svg.onpointerup = svg.onpointercancel = () => {
