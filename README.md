@@ -1,4 +1,4 @@
-# Faces avant Eurorack
+# Eurorack Designer
 
 Dessinez les faces avant de vos modules Eurorack directement dans le navigateur, sur ordinateur ou sur mobile :
 
@@ -14,6 +14,20 @@ Dessinez les faces avant de vos modules Eurorack directement dans le navigateur,
 - export SVG 1:1 en mm pour la découpe et la gravure laser (textes convertis en tracés).
 
 **▶ Utiliser l'app : https://meutedechien.github.io/eurorack-panel/**
+
+## Aperçu
+
+L'éditeur : cotes, trous de fixation M3 placés automatiquement, rouge pour la découpe et bleu pour la gravure.
+
+![L'éditeur en vue plan](captures/plan.png)
+
+La vue 3D, avec les modèles réels des composants et le matériau du panneau.
+
+![Vue 3D du module](captures/3d.png)
+
+Le rack : les modules enregistrés se posent et se glissent d'une rangée à l'autre, aimantés au HP.
+
+![Vue rack](captures/rack.png)
 
 Une seule page HTML, sans installation ni serveur. Pour la modifier, forkez le dépôt et éditez `index.html`.
 
